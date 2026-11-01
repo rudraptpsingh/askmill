@@ -108,3 +108,32 @@ bytes remain available; other consumer adoption is pending explicit pin updates.
 See releases/v0.1.0a3.md, MODEL_SELECTION_2026-11-01.md and the sanitized smoke
 summary. Main, immutable package checksums, CI and host installed-use evidence
 are recorded in the release assets.
+
+## a4 structured-output contract
+
+The routed consumer issue is confirmed: native Ollama `format` forwarding was
+absent. Explicit request/result/batch v2 now supports a versioned, SHA256-pinned,
+bounded response schema through the existing worker/leases. Local validation is
+offline and independent of source or semantic acceptance. Failed and truncated
+outputs are retained, receipt v2 includes the raw provider response, and cache
+identity pins schema plus validator/runtime/transport implementation.
+
+The initial 28 structured regression cases and all existing checks passed:
+70 passed, one optional skip with the local legacy consumer installed. The
+consumer's currently exported response schema passes the supported-subset
+check. New tests include actual stdio MCP v2, CLI exits 0/3/4, invalid-output
+replay and rejection before source image reads for unsupported providers.
+The original v1 schema files and installed default launcher remain unchanged.
+See releases/v0.1.0a4.md for the phase gates; package/main/release evidence is
+recorded only after those gates pass. Consumer readoption is pending its owner.
+
+Final source checks pass: **72 passed, one optional skip**, including 30 new
+structured-output cases and the local legacy integration. A clean wheel-only
+environment passes **67 core checks**, with both optional consumer modules
+skipped before installing PDF2Data. Exported v2 schemas are validated against
+actual requests/results from both source and installed package data.
+An installed-wheel Gemma 4 E4B smoke returned the expected synthetic condition
+source ID with a valid pinned schema, replayed correctly and recorded worker
+reaping/acknowledged settlement without quarantine. This is a transport smoke,
+not document-corpus or semantic-extractor acceptance. The installed default
+remains a3; PDF2Data pins and existing jobs are unchanged.

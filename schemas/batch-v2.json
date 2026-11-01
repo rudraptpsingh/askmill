@@ -1,0 +1,176 @@
+{
+  "$defs": {
+    "Request": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "askmill.request.v1",
+          "enum": [
+            "askmill.request.v1",
+            "askmill.request.v2"
+          ],
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "prompt": {
+          "maxLength": 200000,
+          "minLength": 1,
+          "title": "Prompt",
+          "type": "string"
+        },
+        "images": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Images",
+          "type": "array"
+        },
+        "max_tokens": {
+          "default": 2048,
+          "maximum": 16384,
+          "minimum": 1,
+          "title": "Max Tokens",
+          "type": "integer"
+        },
+        "timeout": {
+          "default": 180.0,
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "response_schema": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResponseSchema"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "title": "Request",
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": "askmill.request.v2"
+              }
+            },
+            "required": [
+              "schema_version"
+            ]
+          },
+          "then": {
+            "required": [
+              "response_schema"
+            ],
+            "properties": {
+              "response_schema": {
+                "$ref": "#/$defs/ResponseSchema"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "response_schema": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ResponseSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "askmill.response-schema.v1",
+          "default": "askmill.response-schema.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "document": {
+          "additionalProperties": true,
+          "title": "Document",
+          "type": "object"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "sha256"
+      ],
+      "title": "ResponseSchema",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "reference": {
+          "minLength": 1,
+          "title": "Reference",
+          "type": "string"
+        },
+        "content_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "reference",
+        "content_sha256"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "askmill.batch.v2"
+    },
+    "requests": {
+      "items": {
+        "$ref": "#/$defs/Request"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Requests",
+      "type": "array"
+    }
+  },
+  "required": [
+    "requests",
+    "schema_version"
+  ],
+  "title": "Batch",
+  "type": "object"
+}

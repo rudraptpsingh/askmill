@@ -136,6 +136,8 @@ def main():
         value = execute(args)
         if value is not None:
             print(json.dumps(value, ensure_ascii=False))
+        if value and value.get("status") == "schema_invalid":
+            return 4
         return 3 if value and value.get("status") == "incomplete" else 0
     except (Exception, KeyboardInterrupt) as error:
         print(

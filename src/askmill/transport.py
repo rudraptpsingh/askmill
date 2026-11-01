@@ -136,12 +136,16 @@ class Session:
             gc.collect()
             mx.clear_cache()
 
-    def generate(self, prompt, images=(), max_tokens=2048, timeout=180):
+    def generate(
+        self, prompt, images=(), max_tokens=2048, timeout=180, response_schema=None
+    ):
         if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 200000:
             raise ValueError("Provide a prompt of 1..200000 characters")
         if not 1 <= max_tokens <= 16384:
             raise ValueError("Use max tokens 1..16384")
         profile = self.profile
+        if response_schema is not None and profile["provider"] != "ollama":
+            raise ValueError("Structured output is supported by local Ollama only")
         settings = profile.get("generation") or {}
         image_values = image_data(images)
         started = time.perf_counter()
@@ -230,6 +234,8 @@ class Session:
                 stream=False,
                 options=options,
             )
+            if response_schema is not None:
+                payload["format"] = response_schema
             if settings.get("thinking", False) is not None:
                 payload["think"] = settings.get("thinking", False)
             raw = request(profile, "api/chat", payload, timeout)
@@ -271,7 +277,12 @@ class Session:
             complete = choices[0].get("finish_reason") == "stop" and (
                 type(tokens) is not int or tokens < max_tokens
             )
-        if (
+        if response_schema is not None:
+            # Empty/nontext content is retained in raw_response and validated
+            # as invalid JSON by the parent, without discarding the attempt.
+            if not isinstance(text, str):
+                text = ""
+        elif (
             profile["provider"] == "ollama"
             and not complete
             and (text is None or text == "")

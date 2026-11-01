@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "ResponseSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "askmill.response-schema.v1",
+          "default": "askmill.response-schema.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "document": {
+          "additionalProperties": true,
+          "title": "Document",
+          "type": "object"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "sha256"
+      ],
+      "title": "ResponseSchema",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "reference": {
+          "minLength": 1,
+          "title": "Reference",
+          "type": "string"
+        },
+        "content_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "reference",
+        "content_sha256"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "askmill.request.v2"
+    },
+    "prompt": {
+      "maxLength": 200000,
+      "minLength": 1,
+      "title": "Prompt",
+      "type": "string"
+    },
+    "images": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "title": "Images",
+      "type": "array"
+    },
+    "max_tokens": {
+      "default": 2048,
+      "maximum": 16384,
+      "minimum": 1,
+      "title": "Max Tokens",
+      "type": "integer"
+    },
+    "timeout": {
+      "default": 180.0,
+      "exclusiveMinimum": 0,
+      "maximum": 3600,
+      "title": "Timeout",
+      "type": "number"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "response_schema": {
+      "$ref": "#/$defs/ResponseSchema"
+    }
+  },
+  "required": [
+    "prompt",
+    "schema_version",
+    "response_schema"
+  ],
+  "title": "Request",
+  "type": "object"
+}

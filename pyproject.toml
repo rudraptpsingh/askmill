@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "askmill"
-version = "0.1.0a3"
+version = "0.1.0a4"
 description = "Run local text and vision models from code, terminal, or coding assistants."
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
-dependencies = ["pydantic>=2.10,<3"]
+dependencies = ["pydantic>=2.10,<3", "jsonschema>=4.23,<5"]
 readme = "README.md"
 
 [project.optional-dependencies]

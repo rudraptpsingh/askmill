@@ -1,0 +1,159 @@
+{
+  "$defs": {
+    "ResponseValidation": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "askmill.response-validation.v1",
+          "default": "askmill.response-validation.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "schema_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Schema Sha256",
+          "type": "string"
+        },
+        "valid": {
+          "title": "Valid",
+          "type": "boolean"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Errors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_sha256",
+        "valid",
+        "errors"
+      ],
+      "title": "ResponseValidation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "askmill.result.v2"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "incomplete",
+        "schema_invalid"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "complete": {
+      "title": "Complete",
+      "type": "boolean"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "revision": {
+      "title": "Revision",
+      "type": "string"
+    },
+    "generated_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Generated Tokens"
+    },
+    "seconds": {
+      "title": "Seconds",
+      "type": "number"
+    },
+    "runtime": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Runtime",
+      "type": "object"
+    },
+    "device": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Device"
+    },
+    "peak_device_memory_bytes": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Peak Device Memory Bytes"
+    },
+    "receipt_id": {
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "replayed": {
+      "default": false,
+      "title": "Replayed",
+      "type": "boolean"
+    },
+    "domain_acceptance": {
+      "const": "unverified",
+      "default": "unverified",
+      "title": "Domain Acceptance",
+      "type": "string"
+    },
+    "response_validation": {
+      "$ref": "#/$defs/ResponseValidation"
+    }
+  },
+  "required": [
+    "status",
+    "text",
+    "complete",
+    "model",
+    "revision",
+    "seconds",
+    "receipt_id",
+    "attempt_id",
+    "session_id",
+    "schema_version",
+    "response_validation"
+  ],
+  "title": "Result",
+  "type": "object"
+}

@@ -81,13 +81,55 @@ class Source(Strict):
     content_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
+class ResponseSchema(Strict):
+    schema_version: Literal["askmill.response-schema.v1"] = "askmill.response-schema.v1"
+    document: dict
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+    @model_validator(mode="after")
+    def checked(self):
+        from .structured import check_schema, schema_digest
+
+        check_schema(self.document)
+        if schema_digest(self.document) != self.sha256:
+            raise ValueError("Response schema SHA256 mismatch")
+        return self
+
+    @classmethod
+    def from_schema(cls, document):
+        from .structured import check_schema, schema_digest
+
+        check_schema(document)
+        return cls(document=document, sha256=schema_digest(document))
+
+
 class Request(Strict):
-    schema_version: Literal["askmill.request.v1"] = "askmill.request.v1"
+    schema_version: Literal["askmill.request.v1", "askmill.request.v2"] = (
+        "askmill.request.v1"
+    )
     prompt: str = Field(min_length=1, max_length=200000)
     images: list[str] = Field(default_factory=list, max_length=8)
     max_tokens: int = Field(default=2048, ge=1, le=16384)
     timeout: float = Field(default=180.0, gt=0, le=3600)
     sources: list[Source] = Field(default_factory=list)
+    response_schema: ResponseSchema | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_request(self, handler):
+        data = handler(self)
+        if self.schema_version == "askmill.request.v1":
+            data.pop("response_schema", None)
+        return data
+
+    @model_validator(mode="after")
+    def versioned_response(self):
+        if (self.schema_version == "askmill.request.v2") != (
+            self.response_schema is not None
+        ):
+            raise ValueError(
+                "Response schema requires explicit request v2; v2 requires a schema"
+            )
+        return self
 
     @field_validator("prompt")
     @classmethod
@@ -104,9 +146,20 @@ class Request(Strict):
         return value
 
 
+class ResponseValidation(Strict):
+    schema_version: Literal["askmill.response-validation.v1"] = (
+        "askmill.response-validation.v1"
+    )
+    schema_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    valid: bool
+    errors: list[str] = Field(max_length=16)
+
+
 class Result(Strict):
-    schema_version: Literal["askmill.result.v1"] = "askmill.result.v1"
-    status: Literal["completed", "incomplete"]
+    schema_version: Literal["askmill.result.v1", "askmill.result.v2"] = (
+        "askmill.result.v1"
+    )
+    status: Literal["completed", "incomplete", "schema_invalid"]
     text: str
     complete: bool
     model: str
@@ -121,14 +174,45 @@ class Result(Strict):
     session_id: str
     replayed: bool = False
     domain_acceptance: Literal["unverified"] = "unverified"
+    response_validation: ResponseValidation | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_result(self, handler):
+        data = handler(self)
+        if self.schema_version == "askmill.result.v1":
+            data.pop("response_validation", None)
+        return data
+
+    @model_validator(mode="after")
+    def versioned_validation(self):
+        if (self.schema_version == "askmill.result.v2") != (
+            self.response_validation is not None
+        ):
+            raise ValueError("Result v2 requires response validation")
+        expected = (
+            "incomplete"
+            if not self.complete
+            else (
+                "schema_invalid"
+                if self.response_validation and not self.response_validation.valid
+                else "completed"
+            )
+        )
+        if self.status != expected:
+            raise ValueError("Status differs from completion/schema validity")
+        return self
 
 
 class Batch(Strict):
-    schema_version: Literal["askmill.batch.v1"] = "askmill.batch.v1"
+    schema_version: Literal["askmill.batch.v1", "askmill.batch.v2"] = "askmill.batch.v1"
     requests: list[Request] = Field(min_length=1, max_length=16)
 
     @model_validator(mode="after")
     def bounded(self):
+        if self.schema_version == "askmill.batch.v1" and any(
+            item.schema_version != "askmill.request.v1" for item in self.requests
+        ):
+            raise ValueError("Request v2 requires batch v2")
         if sum(item.timeout for item in self.requests) > 3600:
             raise ValueError("Total batch generation deadlines exceed one hour")
         return self

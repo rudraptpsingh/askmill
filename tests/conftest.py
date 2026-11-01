@@ -21,6 +21,7 @@ def endpoint():
         "thinking_values": [False, True, "low", "medium", "high"],
         "answer": "candidate",
         "reasoning": None,
+        "capabilities": ["completion", "vision"],
     }
 
     class Handler(BaseHTTPRequestHandler):
@@ -37,7 +38,7 @@ def endpoint():
             if self.path == "/api/show":
                 return self.reply(
                     {
-                        "capabilities": ["completion", "vision"],
+                        "capabilities": state["capabilities"],
                         "remote_host": "cloud.example" if state["remote"] else None,
                         "thinking": {
                             "values": state["thinking_values"],

@@ -3,8 +3,10 @@
 import base64
 import fcntl
 import hashlib
+import importlib.metadata
 import json
 import os
+import re
 import selectors
 import signal
 import subprocess
@@ -57,6 +59,7 @@ class Session:
         self.external_request_settlement = "not_sent"
         self.stderr = None
         self.buffer = b""
+        self.ollama_capabilities = []
         self.runtime = {
             "transport_sha256": hashlib.sha256(
                 Path(__file__).with_name("transport.py").read_bytes()
@@ -175,6 +178,7 @@ class Session:
                     controls.get("default")
                 )
         capabilities = details.get("capabilities", [])
+        self.ollama_capabilities = capabilities
         if any(
             ("completion" if capability == "text" else capability) not in capabilities
             for capability in self.profile.capabilities
@@ -222,6 +226,33 @@ class Session:
     def run(self, request: Request):
         if not self.worker or self.worker.poll() is not None:
             raise RunError("closed", "Open a session before inference")
+        # Revalidate a deep snapshot: a caller may have mutated a nested schema.
+        request.versioned_response()
+        request = Request.model_validate(json.loads(request.model_dump_json()))
+        runtime = dict(self.runtime)
+        if request.response_schema:
+            if self.profile.provider != "ollama":
+                raise RunError("unsupported", "Structured output requires local Ollama")
+            if "completion" not in self.ollama_capabilities:
+                raise RunError(
+                    "unsupported", "Structured output requires a completion model"
+                )
+            version = re.fullmatch(
+                r"(\d+)\.(\d+)\.(\d+)", self.runtime["ollama_version"]
+            )
+            if not version or tuple(map(int, version.groups())) < (0, 5, 0):
+                raise RunError(
+                    "unsupported",
+                    "Structured output requires a stable Ollama version >=0.5.0",
+                )
+            runtime.update(
+                {
+                    "jsonschema": importlib.metadata.version("jsonschema"),
+                    "structured_sha256": hashlib.sha256(
+                        Path(__file__).with_name("structured.py").read_bytes()
+                    ).hexdigest(),
+                }
+            )
         needed = "vision" if request.images else "text"
         if needed not in self.profile.capabilities:
             raise RunError("unsupported", "Profile does not support " + needed)
@@ -248,7 +279,7 @@ class Session:
             {
                 "request": snapshot,
                 "profile": self.profile.model_dump(),
-                "runtime": self.runtime,
+                "runtime": runtime,
             }
         )
         target = self.store / (key + ".json")
@@ -260,12 +291,27 @@ class Session:
             if (
                 content["request"] != snapshot
                 or content["profile"] != self.profile.model_dump()
-                or content["runtime"] != self.runtime
+                or content["runtime"] != runtime
             ):
                 raise RunError("receipt_corrupt", "Receipt inputs differ")
-            return Result.model_validate(content["result"]).model_copy(
-                update={"replayed": True}
-            )
+            cached = Result.model_validate(content["result"])
+            if request.response_schema:
+                from .structured import validate_output
+
+                checked = validate_output(cached.text, request.response_schema.document)
+                if (
+                    cached.schema_version != "askmill.result.v2"
+                    or cached.response_validation.schema_sha256
+                    != request.response_schema.sha256
+                    or checked
+                    != cached.response_validation.model_dump(
+                        include={"valid", "errors"}
+                    )
+                ):
+                    raise RunError(
+                        "receipt_corrupt", "Cached response validation differs"
+                    )
+            return cached.model_copy(update={"replayed": True})
         attempt = str(uuid.uuid4())
         started = time.monotonic()
         with tempfile.TemporaryDirectory(prefix="askmill-") as folder:
@@ -275,17 +321,22 @@ class Session:
                 path.write_bytes(base64.b64decode(image["base64"]))
                 paths.append(str(path))
             try:
+                generation_args = {
+                    "prompt": request.prompt,
+                    "images": paths,
+                    "max_tokens": request.max_tokens,
+                    "timeout": request.timeout,
+                }
+                if request.response_schema:
+                    generation_args["response_schema"] = (
+                        request.response_schema.document
+                    )
                 if self.profile.ownership == "external":
                     self.external_request_settlement = "pending"
                 raw = self._exchange(
                     {
                         "op": "generate",
-                        "args": {
-                            "prompt": request.prompt,
-                            "images": paths,
-                            "max_tokens": request.max_tokens,
-                            "timeout": request.timeout,
-                        },
+                        "args": generation_args,
                     },
                     request.timeout,
                 )
@@ -317,28 +368,47 @@ class Session:
                         )
                 self.close()
                 raise
+        status = "completed" if raw["complete"] else "incomplete"
+        structured_fields = {}
+        if request.response_schema:
+            from .structured import validate_output
+
+            checked = validate_output(raw["text"], request.response_schema.document)
+            if raw["complete"] and not checked["valid"]:
+                status = "schema_invalid"
+            structured_fields = {
+                "schema_version": "askmill.result.v2",
+                "response_validation": {
+                    "schema_sha256": request.response_schema.sha256,
+                    **checked,
+                },
+            }
         result = Result(
-            status="completed" if raw["complete"] else "incomplete",
+            status=status,
             text=raw["text"],
             complete=raw["complete"],
             model=raw["model"],
             revision=self.profile.revision,
             generated_tokens=raw.get("generated_tokens"),
             seconds=time.monotonic() - started,
-            runtime=dict(self.runtime),
+            runtime=runtime,
             device=raw.get("device"),
             peak_device_memory_bytes=raw.get("peak_device_memory_bytes"),
             receipt_id=key,
             attempt_id=attempt,
             session_id=self.session_id,
+            **structured_fields,
         )
         content = {
             "key": key,
             "request": snapshot,
             "profile": self.profile.model_dump(),
             "result": result.model_dump(),
-            "runtime": dict(self.runtime),
+            "runtime": runtime,
         }
+        if request.response_schema:
+            content["schema_version"] = "askmill.receipt.v2"
+            content["raw_response"] = raw["raw_response"]
         fd, name = tempfile.mkstemp(dir=self.store, prefix=".attempt-")
         try:
             with os.fdopen(fd, "w") as handle:
@@ -435,7 +505,17 @@ def run_batch(profile, batch, store, lease):
     """Return results in caller order in one bounded warm session."""
     with Session(profile, store, lease) as session:
         results = [session.run(request).model_dump() for request in batch.requests]
+    status = "completed"
+    if any(r["status"] == "schema_invalid" for r in results):
+        status = "schema_invalid"
+    if any(r["status"] == "incomplete" for r in results):
+        status = "incomplete"
     return {
-        "status": "completed" if all(r["complete"] for r in results) else "incomplete",
+        **(
+            {"schema_version": "askmill.batch-result.v2"}
+            if batch.schema_version == "askmill.batch.v2"
+            else {}
+        ),
+        "status": status,
         "results": results,
     }

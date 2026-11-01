@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "askmill.response-schema.v1",
+      "default": "askmill.response-schema.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "document": {
+      "additionalProperties": true,
+      "title": "Document",
+      "type": "object"
+    },
+    "sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "document",
+    "sha256"
+  ],
+  "title": "ResponseSchema",
+  "type": "object"
+}

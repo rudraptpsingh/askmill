@@ -24,7 +24,7 @@ askmill --config profiles.json --store .local/receipts run \
   --profile dev-text --input examples/failing-test.txt --max-tokens 512
 ```
 
-The CLI always prints JSON. Exit 0 means completed; 3 preserves incomplete output; 2 means failure; 130 means interruption. A completed response still needs your task's tests or evidence checks.
+The CLI always prints JSON. Exit 0 means completed; 3 preserves incomplete output; 4 retains schema-invalid structured output; 2 means failure; 130 means interruption. A completed response still needs your task's tests or evidence checks.
 
 **Use the same device lease paths across every caller.** Set `"lease_paths": ["/absolute/shared-gpu.lock"]` at the top level of the local profile file, or repeat global `--lease PATH` for multiple existing locks. AskMill's default lock does not coordinate unrelated runtimes that use different paths. Keep receipt stores private to each authorized workspace; they contain exact prompts and image bytes.
 
@@ -91,3 +91,11 @@ thinking, bounded context and sampling settings, plus model-aware MLX templates.
 Existing v1 profiles retain their behavior. Role names are host configuration;
 use `askmill list` before choosing one. A fast and reasoning profile may share
 the same weights. The dedicated host service is managed outside the runner.
+
+## Structured candidates
+
+a4 adds opt-in pinned response schemas through local Ollama using request v2,
+the same device leases and receipts. Result v2 distinguishes model completion,
+schema validity and unverified domain acceptance. Invalid/truncated output is
+retained without repairs or retries. Existing v1 calls keep their wire format.
+See [the SDK/CLI/MCP contract and supported schema subset](docs/STRUCTURED_OUTPUTS.md).
