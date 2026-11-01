@@ -1,7 +1,9 @@
 """Host-local profile files. No silent conversion or config writes."""
+
 import hashlib
 import json
 from pathlib import Path
+
 from .contract import Profile
 from .runner import RunError, digest
 
@@ -33,7 +35,16 @@ def load(path, name):
 def from_pdf2data(data, revision):
     """Return a converted profile; the caller chooses where to save it."""
     if data["provider"] != "mlx-vlm":
-        raise RunError("unsupported", "HTTP profile migration requires an independently verified model identity")
-    return Profile(provider="mlx-vlm", model=data["model"], revision=revision,
-                   python=data["python"], model_path=data["model_path"],
-                   capabilities=["text", "vision"], ownership="worker")
+        raise RunError(
+            "unsupported",
+            "HTTP profile migration requires an independently verified model identity",
+        )
+    return Profile(
+        provider="mlx-vlm",
+        model=data["model"],
+        revision=revision,
+        python=data["python"],
+        model_path=data["model_path"],
+        capabilities=["text", "vision"],
+        ownership="worker",
+    )

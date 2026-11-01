@@ -8,6 +8,7 @@ version = "0.1.0a1"
 description = "Run local text and vision models from code, terminal, or coding assistants."
 requires-python = ">=3.10"
 license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 dependencies = ["pydantic>=2.10,<3"]
 readme = "README.md"
 
@@ -24,3 +25,10 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.setuptools.data-files]
+"share/askmill/schemas" = ["schemas/*.json"]
+"share/askmill/skills/askmill" = ["skills/askmill/SKILL.md"]

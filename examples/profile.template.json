@@ -1,0 +1,13 @@
+{
+  "schema_version": "askmill.profiles.v1",
+  "profiles": {
+    "dev-text": {
+      "provider": "ollama",
+      "model": "YOUR_INSTALLED_TAG",
+      "revision": "YOUR_EXACT_API_TAG_DIGEST",
+      "capabilities": ["text"],
+      "ownership": "external",
+      "base_url": "http://127.0.0.1:11434"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-01",
+  "qualification": "alpha synthetic workloads only; not downstream domain acceptance",
+  "platform": "Darwin arm64",
+  "automated_tests": 19,
+  "mlx": {
+    "model": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+    "revision": "sha256:5aab9ceb00124cc32fbf4a2bce98389d86ba4d576b4fd59bc7441d7d9135d4b4",
+    "one_worker": true,
+    "exact_digits": true,
+    "first_generation_seconds": 1.419181082979776,
+    "second_generation_seconds": 0.14825320802628994,
+    "receipt_replay": true
+  },
+  "ollama": {
+    "model": "qwen3:8b",
+    "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+    "runtime": {
+      "version": "0.40.13"
+    },
+    "answer": "13",
+    "generation_seconds": 1.9631817089393735,
+    "unloaded_after_test": true
+  },
+  "timing_scope": "Generation only; excludes model-file hashing and host setup. Not a matched provider comparison."
+}

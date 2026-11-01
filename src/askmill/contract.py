@@ -1,6 +1,8 @@
 """Versioned portable contract. Domain acceptance belongs to the consumer."""
+
 import math
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
@@ -26,7 +28,9 @@ class Profile(Strict):
             if not self.python or not self.model_path or self.ownership != "worker":
                 raise ValueError("MLX requires python, model_path and worker ownership")
         elif not self.base_url or self.ownership != "external":
-            raise ValueError("HTTP providers require base_url and external ownership in v0")
+            raise ValueError(
+                "HTTP providers require base_url and external ownership in v0"
+            )
         return self
 
 
