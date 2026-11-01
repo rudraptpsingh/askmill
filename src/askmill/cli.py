@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import __version__
 from .contract import Batch, Request
+from .jsonio import MAX_BATCH_BYTES, load as load_json, read_bytes
 from .profiles import from_pdf2data, load, model_revision
 from .runner import Session, run_batch
 from .transport import validate
@@ -14,7 +15,7 @@ from .transport import validate
 
 def execute(args):
     if args.command == "import-pdf2data":
-        data = json.loads(Path(args.config).read_text())
+        data = load_json(args.config)
         if data.get("schema_version") != "pdf2data.local-models.v1":
             raise ValueError("Unsupported PDF2Data profile format")
         old = data["models"][args.profile]
@@ -29,7 +30,7 @@ def execute(args):
         serve(args.config, args.store, args.lease)
         return None
     if args.command == "list":
-        return json.loads(Path(args.config).read_text())
+        return load_json(args.config)
     profile = load(args.config, args.profile)
     if args.command == "read-fields":
         from .pdf2data_fields import read_fields
@@ -56,15 +57,15 @@ def execute(args):
     if args.command == "batch":
         return run_batch(
             profile,
-            Batch.model_validate_json(Path(args.request).read_text()),
+            Batch.model_validate(load_json(args.request, MAX_BATCH_BYTES)),
             args.store,
             args.lease,
         )
     if args.request:
-        request = Request.model_validate_json(Path(args.request).read_text())
+        request = Request.model_validate(load_json(args.request))
     else:
         request = Request(
-            prompt=Path(args.input).read_text(),
+            prompt=read_bytes(args.input).decode("utf-8"),
             images=args.image,
             max_tokens=args.max_tokens,
             timeout=args.timeout,
@@ -120,7 +121,7 @@ def main():
     try:
         if not args.lease:
             config = Path(args.config)
-            data = json.loads(config.read_text()) if config.exists() else {}
+            data = load_json(config) if config.exists() else {}
             leases = data.get(
                 "lease_paths", [str(Path.home() / ".local/state/askmill/gpu.lock")]
             )

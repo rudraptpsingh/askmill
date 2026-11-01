@@ -1,10 +1,10 @@
 """Host-local profile files. No silent conversion or config writes."""
 
 import hashlib
-import json
 from pathlib import Path
 
 from .contract import Profile
+from .jsonio import load as load_json
 from .runner import RunError, digest
 
 
@@ -24,7 +24,7 @@ def model_revision(path):
 
 
 def load(path, name):
-    data = json.loads(Path(path).read_text())
+    data = load_json(path)
     if data.get("schema_version") != "askmill.profiles.v1":
         raise ValueError("Unsupported profile file")
     if name not in data["profiles"]:

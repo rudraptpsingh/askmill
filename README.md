@@ -99,3 +99,9 @@ the same device leases and receipts. Result v2 distinguishes model completion,
 schema validity and unverified domain acceptance. Invalid/truncated output is
 retained without repairs or retries. Existing v1 calls keep their wire format.
 See [the SDK/CLI/MCP contract and supported schema subset](docs/STRUCTURED_OUTPUTS.md).
+
+a5 rejects duplicate JSON keys/source IDs, bounds aggregate inputs, and verifies
+cached result/session/settlement bindings. Its tighter admission and new cache
+identity require explicit adoption; see [the release contract](docs/releases/v0.1.0a5.md).
+For source-bound question proposals with independent expected-evidence review,
+see [the reusable workflow](docs/QUESTION_PROPOSALS.md).

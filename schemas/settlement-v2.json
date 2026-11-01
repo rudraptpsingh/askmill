@@ -1,0 +1,70 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "askmill.settlement.v2"
+    },
+    "session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "worker_pid": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "worker_reaped": {
+      "type": "boolean"
+    },
+    "ownership": {
+      "enum": [
+        "external",
+        "worker"
+      ]
+    },
+    "external_service_stopped": {
+      "const": false
+    },
+    "external_request_settlement": {
+      "enum": [
+        "not_sent",
+        "pending",
+        "acknowledged",
+        "unconfirmed"
+      ]
+    },
+    "lease_handles_closed": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "quarantined": {
+      "type": "boolean"
+    },
+    "profile_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "lease_paths_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "runner_version": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "session_id",
+    "worker_pid",
+    "worker_reaped",
+    "ownership",
+    "external_service_stopped",
+    "external_request_settlement",
+    "lease_handles_closed",
+    "quarantined",
+    "profile_sha256",
+    "lease_paths_sha256",
+    "runner_version"
+  ]
+}

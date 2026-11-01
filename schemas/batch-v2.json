@@ -44,6 +44,7 @@
           "items": {
             "$ref": "#/$defs/Source"
           },
+          "maxItems": 128,
           "title": "Sources",
           "type": "array"
         },
@@ -127,11 +128,13 @@
       "additionalProperties": false,
       "properties": {
         "id": {
+          "maxLength": 300,
           "minLength": 1,
           "title": "Id",
           "type": "string"
         },
         "reference": {
+          "maxLength": 4096,
           "minLength": 1,
           "title": "Reference",
           "type": "string"

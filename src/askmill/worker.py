@@ -10,13 +10,15 @@ import traceback
 
 # Direct execution intentionally avoids importing the pydantic-based package.
 from transport import Session
+from jsonio import loads as load_json_bytes, MAX_BATCH_BYTES
 
 session = None
 quarantine_paths = []
 try:
-    for line in sys.stdin:
+    for line in iter(lambda: sys.stdin.buffer.readline(MAX_BATCH_BYTES + 1), b""):
+        data = {}
         try:
-            data = json.loads(line)
+            data = load_json_bytes(line, MAX_BATCH_BYTES)
             with contextlib.redirect_stdout(sys.stderr):
                 if data["op"] == "open":
                     session = Session(data["profile"])

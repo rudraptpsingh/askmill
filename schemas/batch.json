@@ -4,10 +4,9 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {
+          "type": "string",
           "const": "askmill.request.v1",
-          "default": "askmill.request.v1",
-          "title": "Schema Version",
-          "type": "string"
+          "default": "askmill.request.v1"
         },
         "prompt": {
           "maxLength": 200000,
@@ -41,6 +40,7 @@
           "items": {
             "$ref": "#/$defs/Source"
           },
+          "maxItems": 128,
           "title": "Sources",
           "type": "array"
         }
@@ -55,11 +55,13 @@
       "additionalProperties": false,
       "properties": {
         "id": {
+          "maxLength": 300,
           "minLength": 1,
           "title": "Id",
           "type": "string"
         },
         "reference": {
+          "maxLength": 4096,
           "minLength": 1,
           "title": "Reference",
           "type": "string"
@@ -82,10 +84,9 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
+      "type": "string",
       "const": "askmill.batch.v1",
-      "default": "askmill.batch.v1",
-      "title": "Schema Version",
-      "type": "string"
+      "default": "askmill.batch.v1"
     },
     "requests": {
       "items": {

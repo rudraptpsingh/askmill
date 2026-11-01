@@ -17,6 +17,14 @@ import uuid
 from pathlib import Path
 
 from .contract import Profile, Request, Result
+from .jsonio import (
+    MAX_FROZEN_INPUT_BYTES,
+    MAX_RECEIPT_BYTES,
+    MAX_REQUEST_BYTES,
+    json_size,
+    load as load_json,
+    loads as load_json_bytes,
+)
 from .transport import request as http_request
 from .transport import validate
 
@@ -33,6 +41,122 @@ class RunError(RuntimeError):
     def __init__(self, status, message):
         self.status = status
         super().__init__(message)
+
+
+def verify_cached_record(
+    record,
+    key,
+    snapshot,
+    profile,
+    runtime,
+    settlement=None,
+    active_session_id=None,
+    active_record_sha256=None,
+):
+    """Validate cross-bindings without inference. Checksums are not signatures."""
+    try:
+        if not isinstance(record, dict) or set(record) != {"content", "sha256"}:
+            raise ValueError("Receipt envelope differs")
+        content = record["content"]
+        if digest(content) != record["sha256"] or content["key"] != key:
+            raise ValueError("Receipt integrity check failed")
+        if (
+            content["request"] != snapshot
+            or content["profile"] != profile.model_dump()
+            or content["runtime"] != runtime
+        ):
+            raise ValueError("Receipt inputs differ")
+        if digest({k: content[k] for k in ("request", "profile", "runtime")}) != key:
+            raise ValueError("Receipt input key differs")
+        result = Result.model_validate(content["result"])
+        expected_version = (
+            "askmill.result.v2"
+            if snapshot.get("response_schema")
+            else "askmill.result.v1"
+        )
+        if (
+            result.schema_version != expected_version
+            or result.receipt_id != key
+            or result.model != profile.model
+            or result.revision != profile.revision
+            or result.runtime != runtime
+            or result.replayed
+        ):
+            raise ValueError("Cached result identity differs")
+        for identity in (result.attempt_id, result.session_id):
+            if str(uuid.UUID(identity)) != identity:
+                raise ValueError("Cached attempt/session identity is not canonical")
+        fields = {"key", "request", "profile", "result", "runtime"}
+        if snapshot.get("response_schema"):
+            from .structured import validate_output
+
+            fields |= {"schema_version", "raw_response"}
+            if content.get("schema_version") != "askmill.receipt.v2":
+                raise ValueError("Receipt contract differs")
+            schema = snapshot["response_schema"]
+            checked = validate_output(result.text, schema["document"])
+            if result.response_validation.schema_sha256 != schema[
+                "sha256"
+            ] or checked != result.response_validation.model_dump(
+                include={"valid", "errors"}
+            ):
+                raise ValueError("Cached response validation differs")
+            raw = content["raw_response"]
+            raw_text = raw.get("message", {}).get("content")
+            if not isinstance(raw_text, str):
+                raw_text = ""
+            if (
+                raw.get("model") != result.model
+                or raw.get("done") is not True
+                or raw_text != result.text
+                or raw.get("eval_count") != result.generated_tokens
+            ):
+                raise ValueError("Raw response/result binding differs")
+            complete = (
+                raw.get("done_reason") not in ("length", "max_tokens")
+                and type(raw.get("eval_count")) is int
+                and raw["eval_count"] < snapshot["max_tokens"]
+            )
+            if complete != result.complete:
+                raise ValueError("Raw completion/result binding differs")
+        if set(content) != fields:
+            raise ValueError("Receipt fields differ")
+        if active_session_id == result.session_id:
+            if active_record_sha256 != record["sha256"]:
+                raise ValueError("Active session attempt binding differs")
+        else:
+            if settlement is None or set(settlement) != {"content", "sha256"}:
+                raise ValueError("Cached result has no verified settlement")
+            settled = settlement["content"]
+            if digest(settled) != settlement["sha256"]:
+                raise ValueError("Settlement integrity check failed")
+            if (
+                settled.get("schema_version")
+                not in ("askmill.settlement.v1", "askmill.settlement.v2")
+                or settled.get("session_id") != result.session_id
+                or settled.get("ownership") != profile.ownership
+                or settled.get("worker_reaped") is not True
+                or settled.get("quarantined") is not False
+                or type(settled.get("lease_handles_closed")) is not int
+                or settled["lease_handles_closed"] < 1
+            ):
+                raise ValueError("Settlement/result binding differs")
+            if (
+                profile.ownership == "external"
+                and settled.get("external_request_settlement") != "acknowledged"
+            ):
+                raise ValueError("Cached external request is not settled")
+            if settled.get("schema_version") == "askmill.settlement.v2":
+                if (
+                    settled.get("profile_sha256") != digest(profile.model_dump())
+                    or settled.get("runner_version") != runtime.get("askmill_version")
+                    or settled.get("lease_paths_sha256")
+                    != runtime.get("lease_paths_sha256")
+                ):
+                    raise ValueError("Settlement profile/runtime binding differs")
+        return result
+    except (KeyError, TypeError, ValueError, AttributeError) as error:
+        raise RunError("receipt_corrupt", str(error)) from error
 
 
 class Session:
@@ -60,10 +184,20 @@ class Session:
         self.stderr = None
         self.buffer = b""
         self.ollama_capabilities = []
+        self.active_receipts = {}
         self.runtime = {
             "transport_sha256": hashlib.sha256(
                 Path(__file__).with_name("transport.py").read_bytes()
-            ).hexdigest()
+            ).hexdigest(),
+            "askmill_version": importlib.metadata.version("askmill"),
+            "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "contract_sha256": hashlib.sha256(
+                Path(__file__).with_name("contract.py").read_bytes()
+            ).hexdigest(),
+            "jsonio_sha256": hashlib.sha256(
+                Path(__file__).with_name("jsonio.py").read_bytes()
+            ).hexdigest(),
+            "lease_paths_sha256": digest([str(p) for p in self.lease_paths]),
         }
 
     def __enter__(self):
@@ -218,7 +352,7 @@ class Session:
                 if len(self.buffer) > LIMIT:
                     raise RunError("output_limit", "Worker response exceeded limit")
         line, self.buffer = self.buffer.split(b"\n", 1)
-        data = json.loads(line)
+        data = load_json_bytes(line, LIMIT)
         if "error" in data:
             raise RunError("provider_error", data["error"])
         return data.get("ok", data)
@@ -228,7 +362,7 @@ class Session:
             raise RunError("closed", "Open a session before inference")
         # Revalidate a deep snapshot: a caller may have mutated a nested schema.
         request.versioned_response()
-        request = Request.model_validate(json.loads(request.model_dump_json()))
+        request = Request.model_validate_json(request.model_dump_json())
         runtime = dict(self.runtime)
         if request.response_schema:
             if self.profile.provider != "ollama":
@@ -258,6 +392,7 @@ class Session:
             raise RunError("unsupported", "Profile does not support " + needed)
         # Freeze actual bytes, not just paths, before handing anything to the model.
         snapshot = request.model_dump()
+        input_bytes = json_size(snapshot, MAX_REQUEST_BYTES)
         frozen = []
         for name in request.images:
             path = Path(name)
@@ -267,13 +402,15 @@ class Session:
                 raw = handle.read(LIMIT + 1)
             if len(raw) > LIMIT:
                 raise RunError("input_limit", "Image exceeds 16 MiB")
-            frozen.append(
-                {
-                    "extension": path.suffix.lower(),
-                    "sha256": hashlib.sha256(raw).hexdigest(),
-                    "base64": base64.b64encode(raw).decode(),
-                }
-            )
+            image = {
+                "extension": path.suffix.lower(),
+                "sha256": hashlib.sha256(raw).hexdigest(),
+                "base64": base64.b64encode(raw).decode(),
+            }
+            input_bytes += json_size(image, MAX_FROZEN_INPUT_BYTES)
+            if input_bytes > MAX_FROZEN_INPUT_BYTES:
+                raise RunError("input_limit", "Total frozen input exceeds 32 MiB")
+            frozen.append(image)
         snapshot["images"] = frozen
         key = digest(
             {
@@ -284,33 +421,28 @@ class Session:
         )
         target = self.store / (key + ".json")
         if target.exists():
-            record = json.loads(target.read_text())
-            content = record["content"]
-            if digest(content) != record["sha256"] or content["key"] != key:
-                raise RunError("receipt_corrupt", "Receipt integrity check failed")
-            if (
-                content["request"] != snapshot
-                or content["profile"] != self.profile.model_dump()
-                or content["runtime"] != runtime
-            ):
-                raise RunError("receipt_corrupt", "Receipt inputs differ")
-            cached = Result.model_validate(content["result"])
-            if request.response_schema:
-                from .structured import validate_output
-
-                checked = validate_output(cached.text, request.response_schema.document)
-                if (
-                    cached.schema_version != "askmill.result.v2"
-                    or cached.response_validation.schema_sha256
-                    != request.response_schema.sha256
-                    or checked
-                    != cached.response_validation.model_dump(
-                        include={"valid", "errors"}
-                    )
-                ):
-                    raise RunError(
-                        "receipt_corrupt", "Cached response validation differs"
-                    )
+            try:
+                record = load_json(target, MAX_RECEIPT_BYTES)
+                # Validate IDs before constructing a settlement filename.
+                cached_id = record["content"]["result"]["session_id"]
+                if str(uuid.UUID(cached_id)) != cached_id:
+                    raise ValueError("Invalid cached session identity")
+                settlement_path = self.store / "settlements" / (cached_id + ".json")
+                settlement = (
+                    load_json(settlement_path) if settlement_path.exists() else None
+                )
+                cached = verify_cached_record(
+                    record,
+                    key,
+                    snapshot,
+                    self.profile,
+                    runtime,
+                    settlement,
+                    active_session_id=self.session_id,
+                    active_record_sha256=self.active_receipts.get(key),
+                )
+            except (KeyError, TypeError, ValueError, AttributeError) as error:
+                raise RunError("receipt_corrupt", str(error)) from error
             return cached.model_copy(update={"replayed": True})
         attempt = str(uuid.uuid4())
         started = time.monotonic()
@@ -416,6 +548,7 @@ class Session:
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(name, target)
+            self.active_receipts[key] = digest(content)
             directory = os.open(self.store, os.O_RDONLY)
             try:
                 os.fsync(directory)
@@ -464,7 +597,7 @@ class Session:
             self.locks.clear()
             if worker is not None:
                 content = {
-                    "schema_version": "askmill.settlement.v1",
+                    "schema_version": "askmill.settlement.v2",
                     "session_id": self.session_id,
                     "worker_pid": worker.pid,
                     "worker_reaped": worker.poll() is not None,
@@ -473,6 +606,9 @@ class Session:
                     "external_request_settlement": self.external_request_settlement,
                     "lease_handles_closed": lock_count,
                     "quarantined": any(p.exists() for p in self.quarantines),
+                    "profile_sha256": digest(self.profile.model_dump()),
+                    "lease_paths_sha256": digest([str(p) for p in self.lease_paths]),
+                    "runner_version": self.runtime["askmill_version"],
                 }
                 folder = self.store / "settlements"
                 folder.mkdir(exist_ok=True, mode=0o700)

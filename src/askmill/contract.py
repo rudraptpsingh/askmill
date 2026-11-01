@@ -1,7 +1,7 @@
 """Versioned portable contract. Domain acceptance belongs to the consumer."""
 
 import math
-from typing import Literal
+from typing import ClassVar, Literal
 
 from pydantic import (
     BaseModel,
@@ -15,6 +15,13 @@ from pydantic import (
 
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+    json_byte_limit: ClassVar[int] = 4 * 1024 * 1024
+
+    @classmethod
+    def model_validate_json(cls, json_data, **kwargs):
+        from .jsonio import loads
+
+        return cls.model_validate(loads(json_data, cls.json_byte_limit), **kwargs)
 
 
 class GenerationSettings(Strict):
@@ -76,8 +83,8 @@ class Profile(Strict):
 
 
 class Source(Strict):
-    id: str = Field(min_length=1)
-    reference: str = Field(min_length=1)
+    id: str = Field(min_length=1, max_length=300)
+    reference: str = Field(min_length=1, max_length=4096)
     content_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
@@ -111,7 +118,7 @@ class Request(Strict):
     images: list[str] = Field(default_factory=list, max_length=8)
     max_tokens: int = Field(default=2048, ge=1, le=16384)
     timeout: float = Field(default=180.0, gt=0, le=3600)
-    sources: list[Source] = Field(default_factory=list)
+    sources: list[Source] = Field(default_factory=list, max_length=128)
     response_schema: ResponseSchema | None = None
 
     @model_serializer(mode="wrap")
@@ -129,6 +136,19 @@ class Request(Strict):
             raise ValueError(
                 "Response schema requires explicit request v2; v2 requires a schema"
             )
+        return self
+
+    @model_validator(mode="after")
+    def bounded_sources_and_input(self):
+        from .jsonio import MAX_REQUEST_BYTES, MAX_SOURCE_METADATA_BYTES, json_size
+
+        ids = [source.id for source in self.sources]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate source IDs are not permitted")
+        json_size(
+            [source.model_dump() for source in self.sources], MAX_SOURCE_METADATA_BYTES
+        )
+        json_size(self.model_dump(mode="json"), MAX_REQUEST_BYTES)
         return self
 
     @field_validator("prompt")
@@ -156,6 +176,7 @@ class ResponseValidation(Strict):
 
 
 class Result(Strict):
+    json_byte_limit: ClassVar[int] = 16 * 1024 * 1024
     schema_version: Literal["askmill.result.v1", "askmill.result.v2"] = (
         "askmill.result.v1"
     )
@@ -204,6 +225,7 @@ class Result(Strict):
 
 
 class Batch(Strict):
+    json_byte_limit: ClassVar[int] = 8 * 1024 * 1024
     schema_version: Literal["askmill.batch.v1", "askmill.batch.v2"] = "askmill.batch.v1"
     requests: list[Request] = Field(min_length=1, max_length=16)
 
@@ -215,4 +237,7 @@ class Batch(Strict):
             raise ValueError("Request v2 requires batch v2")
         if sum(item.timeout for item in self.requests) > 3600:
             raise ValueError("Total batch generation deadlines exceed one hour")
+        from .jsonio import MAX_BATCH_BYTES, json_size
+
+        json_size(self.model_dump(mode="json"), MAX_BATCH_BYTES)
         return self

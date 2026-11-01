@@ -124,7 +124,13 @@ with Session(Profile.model_validate_json(sys.argv[1]),sys.argv[2],sys.argv[3]) a
                 assert error.status == "busy" and time.monotonic() < deadline
                 time.sleep(0.05)
         try:
-            assert recovered.run(Request(prompt="first")).replayed
+            committed = next((tmp_path / "r").glob("*.json"))
+            original = committed.read_bytes()
+            # A committed item from a dead parent has no verified settlement.
+            # Preserve it, but never promote result existence into safe replay.
+            with pytest.raises(RunError, match="no verified settlement"):
+                recovered.run(Request(prompt="first"))
+            assert committed.read_bytes() == original
             assert not recovered.run(Request(prompt="slow")).replayed
         finally:
             recovered.close()

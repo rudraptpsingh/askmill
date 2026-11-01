@@ -157,3 +157,31 @@ and acknowledged worker cleanup are retained in the private execution folder.
 The fixture uses no model inference or real GPU leases and changes no producer,
 profile, engine or release. The README gives exact CLI, SDK result and receipt
 paths, and keeps schema validity separate from PDF2Data's source acceptance.
+
+## a5 input/replay gate correction
+
+The real-request audit confirmed four routed defects: duplicate raw JSON keys,
+duplicate source IDs, missing aggregate source/input bounds and incomplete
+cached-result cross-bindings. a5 adds strict bounded JSON decoding and source
+limits, cross-binds result/raw response/model/runtime/attempt/session/settlement,
+and emits settlement v2 with runner/profile/lease hashes. Source/customer review
+states and externally owned permissions remain consumer gates.
+
+29 controls over the actual request/receipt passed with zero model calls and
+unchanged original bytes. The first metadata-budget control was below its
+intended size; that failed harness attempt is preserved and the corrected
+control reaches the configured cap. The historical parent-crash software check
+exposed its prior assumption that a result without settlement could replay;
+the regression now requires rejection while preserving that committed item.
+Versioned schema/artifact pins and final checks are recorded in the a5 release
+assets. Performance thresholds remain not_established.
+
+The real-source question-proposal workflow is documented in
+QUESTION_PROPOSALS.md. Its private CERC request/schema example is prepared and
+contract-validated without dispatch or new answer/accuracy cases. The existing
+deeper20 real-intent suite remains the first consumer suite.
+
+The final source suite passes 83 software/metadata/real-envelope checks with
+one optional integration skipped when the authorized real receipt is supplied.
+The real receipt is external to this repository; CI without that input skips
+those eight controls explicitly. These totals are not document accuracy cases.

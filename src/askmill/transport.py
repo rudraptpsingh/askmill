@@ -13,6 +13,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+if __package__:
+    from .jsonio import loads as load_json_bytes, json_size, MAX_FROZEN_INPUT_BYTES
+else:
+    from jsonio import loads as load_json_bytes, json_size, MAX_FROZEN_INPUT_BYTES
+
 
 def write(path, value):
     path.write_text(json.dumps(value), encoding="utf-8")
@@ -68,6 +73,13 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def request(profile, suffix, payload=None, timeout=180):
+    if payload is not None:
+        json_size(payload, MAX_FROZEN_INPUT_BYTES)
+    body = (
+        json.dumps(payload, allow_nan=False).encode() if payload is not None else None
+    )
+    if body is not None and len(body) > MAX_FROZEN_INPUT_BYTES:
+        raise ValueError("HTTP request body exceeds 32 MiB")
     headers = {"Content-Type": "application/json"}
     if profile.get("api_key_env"):
         key = os.environ.get(profile["api_key_env"])
@@ -77,7 +89,7 @@ def request(profile, suffix, payload=None, timeout=180):
     url = profile["base_url"].rstrip("/") + "/" + suffix.lstrip("/")
     req = urllib.request.Request(
         url,
-        data=json.dumps(payload).encode() if payload is not None else None,
+        data=body,
         headers=headers,
     )
     try:
@@ -87,7 +99,7 @@ def request(profile, suffix, payload=None, timeout=180):
             raw = response.read(16 * 1024 * 1024 + 1)
         if len(raw) > 16 * 1024 * 1024:
             raise ValueError("Local model response exceeds 16 MB; narrow the request")
-        return json.loads(raw)
+        return load_json_bytes(raw, 16 * 1024 * 1024)
     except urllib.error.HTTPError as error:
         raise ValueError(
             "Local model HTTP "
