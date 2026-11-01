@@ -1,0 +1,72 @@
+"""Small versioned JSON CLI; no PDF parsing or domain decisions."""
+import argparse
+import json
+from pathlib import Path
+import sys
+
+from .contract import Request
+from .profiles import from_pdf2data, load, model_revision
+from .runner import RunError, Session
+from .transport import validate
+
+
+def execute(args):
+    if args.command == "import-pdf2data":
+        data = json.loads(Path(args.config).read_text())
+        if data.get("schema_version") != "pdf2data.local-models.v1":
+            raise ValueError("Unsupported PDF2Data profile format")
+        old = data["models"][args.profile]
+        converted = from_pdf2data(old, model_revision(old["model_path"]))
+        return {"schema_version": "askmill.profiles.v1", "profiles": {args.profile: converted.model_dump(exclude_none=True)}}
+    if args.command == "mcp":
+        from .mcp import serve
+        serve(args.config, args.store, args.lease)
+        return None
+    if args.command == "list":
+        return json.loads(Path(args.config).read_text())
+    profile = load(args.config, args.profile)
+    if args.command == "doctor":
+        validate(profile.model_dump(exclude_none=True))
+        return {"status": "configuration_valid", "provider": profile.provider,
+                "model": profile.model, "inference_tested": False}
+    if args.request:
+        request = Request.model_validate_json(Path(args.request).read_text())
+    else:
+        request = Request(prompt=Path(args.input).read_text(), images=args.image,
+                          max_tokens=args.max_tokens, timeout=args.timeout)
+    with Session(profile, args.store, args.lease) as session:
+        return session.run(request).model_dump()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", default=str(Path.home() / ".config/askmill/profiles.json"))
+    parser.add_argument("--store", default=str(Path.home() / ".local/state/askmill/receipts"))
+    parser.add_argument("--lease", default=str(Path.home() / ".local/state/askmill/gpu.lock"))
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("list")
+    for command in ("doctor", "import-pdf2data"):
+        child = sub.add_parser(command)
+        child.add_argument("--profile", required=True)
+    run = sub.add_parser("run")
+    run.add_argument("--profile", required=True)
+    inputs = run.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--input")
+    inputs.add_argument("--request")
+    run.add_argument("--image", action="append", default=[])
+    run.add_argument("--max-tokens", type=int, default=2048)
+    run.add_argument("--timeout", type=float, default=180.0)
+    sub.add_parser("mcp")
+    args = parser.parse_args()
+    try:
+        value = execute(args)
+        if value is not None:
+            print(json.dumps(value, ensure_ascii=False))
+        return 3 if value and value.get("status") == "incomplete" else 0
+    except (Exception, KeyboardInterrupt) as error:
+        print(json.dumps({"status": getattr(error, "status", "invalid_or_unavailable"), "error": str(error)}))
+        return 130 if isinstance(error, KeyboardInterrupt) else 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
