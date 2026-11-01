@@ -57,7 +57,7 @@ The worker loads the model once per session. Every item freezes actual inputs an
 
 ## Coding assistants
 
-The optional MCP command is `askmill --config /absolute/profiles.json --store /workspace/receipts mcp`. Configure your MCP client to launch that executable with those arguments. The `run` and `run_batch` tools use the same session and receipt implementation as Python and the CLI.
+The optional MCP command is `askmill --config /absolute/profiles.json --store /workspace/receipts mcp`. Configure your MCP client to launch that executable with those arguments. `run_request_v1` carries a complete source-bound Request; `run` keeps its flat prompt interface and `run_batch` accepts full request dictionaries. They share the SDK/CLI session and receipt path. See [MCP contracts and producer identity](docs/MCP.md).
 
 The reusable skill is [skills/askmill/SKILL.md](skills/askmill/SKILL.md). Copy its folder to your coding assistant's skill directory after installing the executable. It guides bounded local calls and verification; it does not replace the parent assistant.
 

@@ -111,7 +111,11 @@ def test_mcp_stdio_calls_shared_runner(endpoint, tmp_path):
             async with ClientSession(read, write) as client:
                 await client.initialize()
                 tools = await client.list_tools()
-                assert [tool.name for tool in tools.tools] == ["run", "run_batch"]
+                assert [tool.name for tool in tools.tools] == [
+                    "run",
+                    "run_batch",
+                    "run_request_v1",
+                ]
                 result = await client.call_tool(
                     "run", {"profile": "test", "prompt": "Explain this log."}
                 )

@@ -1,0 +1,46 @@
+{
+  "$id": "urn:askmill:mcp-producer:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "askmill.mcp-producer.v1"
+    },
+    "application": {
+      "const": "askmill"
+    },
+    "application_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mcp_sdk_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "full_request_tool": {
+      "const": "run_request_v1"
+    },
+    "full_request_tool_contract": {
+      "const": "askmill.mcp-run-request.v1"
+    },
+    "request_contracts": {
+      "const": [
+        "askmill.request.v1",
+        "askmill.request.v2"
+      ]
+    },
+    "domain_acceptance": {
+      "const": "unverified"
+    }
+  },
+  "required": [
+    "schema_version",
+    "application",
+    "application_version",
+    "mcp_sdk_version",
+    "full_request_tool",
+    "full_request_tool_contract",
+    "request_contracts",
+    "domain_acceptance"
+  ]
+}

@@ -187,3 +187,22 @@ The real receipt is external to this repository; CI without that input skips
 those eight controls explicitly. These totals are not document accuracy cases.
 The final expanded real-envelope control packet has 32 passing cases, including
 strict settlement fields and runner/profile/lease binding. New model calls: zero.
+
+## a6 MCP parity correction
+
+The actual installed-a5 owner probe identified a single-call source-metadata
+gap and SDK/application version ambiguity. a6 adds versioned `run_request_v1`,
+closed/byte-bounded tool arguments and distinct initialize/producer-resource
+identity through the existing Request/Session path. `run_batch` retains its
+prior full-request support; no model/lease/receipt engine is duplicated.
+
+The unchanged actual CERC request reaches a non-inference Session guard through
+both full-request and batch tools. Eight refusal controls reject before any
+session; no provider response is mocked. Initialize and resource identity checks
+pass over actual stdio. The source suite passes 86 checks, one optional skip,
+with the external authorized real inputs. These are controls, not accuracy cases.
+SDK 1.12 with current Pydantic failed import; the optional MCP dependency floor
+is now the qualified 1.30 series and the isolated probe passes after upgrade.
+Final installed-wheel/main/release checks are recorded in the a6 release assets.
+Live generation/cache adoption and source/client approval remain pending their
+separate consumer gates.
