@@ -185,3 +185,5 @@ The final source suite passes 83 software/metadata/real-envelope checks with
 one optional integration skipped when the authorized real receipt is supplied.
 The real receipt is external to this repository; CI without that input skips
 those eight controls explicitly. These totals are not document accuracy cases.
+The final expanded real-envelope control packet has 32 passing cases, including
+strict settlement fields and runner/profile/lease binding. New model calls: zero.

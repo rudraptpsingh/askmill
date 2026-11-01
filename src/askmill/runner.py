@@ -130,6 +130,30 @@ def verify_cached_record(
             settled = settlement["content"]
             if digest(settled) != settlement["sha256"]:
                 raise ValueError("Settlement integrity check failed")
+            settlement_fields = {
+                "schema_version",
+                "session_id",
+                "worker_pid",
+                "worker_reaped",
+                "ownership",
+                "external_service_stopped",
+                "external_request_settlement",
+                "lease_handles_closed",
+                "quarantined",
+            }
+            if settled.get("schema_version") == "askmill.settlement.v2":
+                settlement_fields |= {
+                    "profile_sha256",
+                    "lease_paths_sha256",
+                    "runner_version",
+                }
+            if (
+                set(settled) != settlement_fields
+                or type(settled.get("worker_pid")) is not int
+                or settled["worker_pid"] < 1
+                or settled.get("external_service_stopped") is not False
+            ):
+                raise ValueError("Settlement fields differ")
             if (
                 settled.get("schema_version")
                 not in ("askmill.settlement.v1", "askmill.settlement.v2")
