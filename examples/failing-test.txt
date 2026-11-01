@@ -1,2 +1,10 @@
-Synthetic example: expected invoice total 120, got 100.
-Explain which assertion to inspect. Do not edit files.
+Review only this synthetic function and failing test. Do not edit files.
+Source with physical line numbers:
+1 def invoice_total(amount, tax):
+2     """Return amount including tax."""
+3     return amount - tax
+
+Failure: invoice_total(100, 20) returned 80; expected 120.
+Return JSON only with keys line (integer), quote (exact source line, without indentation),
+replacement (exact replacement line, without indentation), and reason.
+Identify the source line that causes the failure.

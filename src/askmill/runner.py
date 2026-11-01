@@ -52,10 +52,21 @@ class Session:
         self.quarantine = self.quarantines[0]
         self.locks = []
         self.worker = None
+        self.session_id = None
+        self.settlement = None
+        self.external_request_settlement = "not_sent"
         self.stderr = None
         self.buffer = b""
+        self.runtime = {
+            "transport_sha256": hashlib.sha256(
+                Path(__file__).with_name("transport.py").read_bytes()
+            ).hexdigest()
+        }
 
     def __enter__(self):
+        self.session_id = str(uuid.uuid4())
+        self.settlement = None
+        self.external_request_settlement = "not_sent"
         if any(p.exists() for p in self.quarantines):
             raise RunError(
                 "cleanup_uncertain",
@@ -104,16 +115,54 @@ class Session:
                 start_new_session=True,
                 pass_fds=tuple(lock.fileno() for lock in self.locks),
             )
-            self._exchange(
-                {"op": "open", "profile": self.profile.model_dump(exclude_none=True)},
+            ready = self._exchange(
+                {
+                    "op": "open",
+                    "profile": self.profile.model_dump(exclude_none=True),
+                    "quarantine_paths": [str(p) for p in self.quarantines],
+                },
                 15,
             )
+            self.runtime.update(ready["runtime"])
             return self
         except BaseException:
             self.close()
             raise
 
     def _verify_ollama(self):
+        version = http_request(
+            self.profile.model_dump(), "api/version", timeout=10
+        ).get("version")
+        if not isinstance(version, str) or not version:
+            raise RunError("runtime_unavailable", "Ollama version unavailable")
+        if self.runtime.get("ollama_version", version) != version:
+            raise RunError(
+                "runtime_mismatch", "Ollama runtime changed during the session"
+            )
+        self.runtime["ollama_version"] = version
+        details = http_request(
+            self.profile.model_dump(),
+            "api/show",
+            {"model": self.profile.model},
+            timeout=10,
+        )
+        if (
+            details.get("remote_host")
+            or details.get("remote_model")
+            or "cloud" in self.profile.model.lower()
+        ):
+            raise RunError(
+                "unsupported", "Cloud-backed Ollama models are not local profiles"
+            )
+        capabilities = details.get("capabilities", [])
+        if any(
+            ("completion" if capability == "text" else capability) not in capabilities
+            for capability in self.profile.capabilities
+        ):
+            raise RunError(
+                "unsupported",
+                "Installed model does not provide the profile capabilities",
+            )
         tags = http_request(self.profile.model_dump(), "api/tags", timeout=10)
         actual = next(
             (
@@ -175,7 +224,13 @@ class Session:
                 }
             )
         snapshot["images"] = frozen
-        key = digest({"request": snapshot, "profile": self.profile.model_dump()})
+        key = digest(
+            {
+                "request": snapshot,
+                "profile": self.profile.model_dump(),
+                "runtime": self.runtime,
+            }
+        )
         target = self.store / (key + ".json")
         if target.exists():
             record = json.loads(target.read_text())
@@ -185,6 +240,7 @@ class Session:
             if (
                 content["request"] != snapshot
                 or content["profile"] != self.profile.model_dump()
+                or content["runtime"] != self.runtime
             ):
                 raise RunError("receipt_corrupt", "Receipt inputs differ")
             return Result.model_validate(content["result"]).model_copy(
@@ -199,6 +255,8 @@ class Session:
                 path.write_bytes(base64.b64decode(image["base64"]))
                 paths.append(str(path))
             try:
+                if self.profile.ownership == "external":
+                    self.external_request_settlement = "pending"
                 raw = self._exchange(
                     {
                         "op": "generate",
@@ -212,6 +270,12 @@ class Session:
                     request.timeout,
                 )
                 if self.profile.provider == "ollama":
+                    if raw.get("raw_response", {}).get("done") is not True:
+                        raise RunError(
+                            "cleanup_uncertain",
+                            "External server did not acknowledge generation termination",
+                        )
+                    self.external_request_settlement = "acknowledged"
                     self._verify_ollama()
                 if raw["model"] != self.profile.model:
                     raise RunError(
@@ -220,6 +284,8 @@ class Session:
             except BaseException:
                 # HTTP disconnect is NOT proof the server stopped computing.
                 if self.profile.ownership == "external":
+                    if self.external_request_settlement == "pending":
+                        self.external_request_settlement = "unconfirmed"
                     for marker in self.quarantines:
                         marker.write_text(
                             json.dumps(
@@ -239,14 +305,19 @@ class Session:
             revision=self.profile.revision,
             generated_tokens=raw.get("generated_tokens"),
             seconds=time.monotonic() - started,
+            runtime=dict(self.runtime),
+            device=raw.get("device"),
+            peak_device_memory_bytes=raw.get("peak_device_memory_bytes"),
             receipt_id=key,
             attempt_id=attempt,
+            session_id=self.session_id,
         )
         content = {
             "key": key,
             "request": snapshot,
             "profile": self.profile.model_dump(),
             "result": result.model_dump(),
+            "runtime": dict(self.runtime),
         }
         fd, name = tempfile.mkstemp(dir=self.store, prefix=".attempt-")
         try:
@@ -266,6 +337,10 @@ class Session:
         return result
 
     def close(self):
+        if self.settlement is not None:
+            return self.settlement
+        worker = self.worker
+        lock_count = len(self.locks)
         try:
             if self.worker:
                 if self.worker.poll() is None:
@@ -297,6 +372,40 @@ class Session:
                 # Closing our FD preserves a worker-inherited lease if cleanup failed.
                 lock.close()
             self.locks.clear()
+            if worker is not None:
+                content = {
+                    "schema_version": "askmill.settlement.v1",
+                    "session_id": self.session_id,
+                    "worker_pid": worker.pid,
+                    "worker_reaped": worker.poll() is not None,
+                    "ownership": self.profile.ownership,
+                    "external_service_stopped": False,
+                    "external_request_settlement": self.external_request_settlement,
+                    "lease_handles_closed": lock_count,
+                    "quarantined": any(p.exists() for p in self.quarantines),
+                }
+                folder = self.store / "settlements"
+                folder.mkdir(exist_ok=True, mode=0o700)
+                target = folder / (self.session_id + ".json")
+                fd, name = tempfile.mkstemp(dir=folder, prefix=".settlement-")
+                try:
+                    with os.fdopen(fd, "w") as handle:
+                        json.dump(
+                            {"content": content, "sha256": digest(content)}, handle
+                        )
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                    os.replace(name, target)
+                    directory = os.open(folder, os.O_RDONLY)
+                    try:
+                        os.fsync(directory)
+                    finally:
+                        os.close(directory)
+                finally:
+                    if os.path.exists(name):
+                        os.unlink(name)
+                self.settlement = content
+        return self.settlement
 
     def __exit__(self, *args):
         self.close()

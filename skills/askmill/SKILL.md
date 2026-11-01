@@ -13,3 +13,5 @@ For several related calls, use MCP `run_batch`, CLI `batch` with a Batch JSON fi
 Select only the diff, log or source image needed for the task. A local model produces candidate findings: reopen its cited lines or source crop, then run the caller's checks before accepting a change.
 Exit 3 retains incomplete output; exit 2 reports a failure. Inspect the JSON status. Do not silently change provider when the profile is unavailable.
 If cleanup is uncertain, stop that workload and verify the external service settled before clearing the quarantine marker. Do not stop another client's service.
+
+For an existing PDF2Data field-witness request, use `read-fields` and a new output directory. The caller owns rendering, evidence validation and review state; a successful inference is not approval.

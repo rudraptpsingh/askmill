@@ -47,12 +47,47 @@
       "title": "Seconds",
       "type": "number"
     },
+    "runtime": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Runtime",
+      "type": "object"
+    },
+    "device": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Device"
+    },
+    "peak_device_memory_bytes": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Peak Device Memory Bytes"
+    },
     "receipt_id": {
       "title": "Receipt Id",
       "type": "string"
     },
     "attempt_id": {
       "title": "Attempt Id",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
       "type": "string"
     },
     "replayed": {
@@ -75,7 +110,8 @@
     "revision",
     "seconds",
     "receipt_id",
-    "attempt_id"
+    "attempt_id",
+    "session_id"
   ],
   "title": "Result",
   "type": "object"

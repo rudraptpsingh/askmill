@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "askmill"
-version = "0.1.0a1"
+version = "0.1.0a2"
 description = "Run local text and vision models from code, terminal, or coding assistants."
 requires-python = ">=3.10"
 license = "MIT"
@@ -19,6 +19,7 @@ mlx = ["mlx-vlm>=0.7; sys_platform == 'darwin' and platform_machine == 'arm64'"]
 
 [project.scripts]
 askmill = "askmill.cli:main"
+pdf2data-askmill = "askmill.pdf2data:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

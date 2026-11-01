@@ -2,7 +2,11 @@
   "date": "2026-11-01",
   "qualification": "alpha synthetic workloads only; not downstream domain acceptance",
   "platform": "Darwin arm64",
-  "automated_tests": 24,
+  "automated_tests": {
+    "core": 29,
+    "published_pdf2data_environment": 33,
+    "local_legacy_environment": 34
+  },
   "mlx": {
     "model": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
     "revision": "sha256:5aab9ceb00124cc32fbf4a2bce98389d86ba4d576b4fd59bc7441d7d9135d4b4",
@@ -29,7 +33,7 @@
     "second_shared_read_replayed": true,
     "scope": "Session boundary only"
   },
-  "ci": {
+  "previous_ci": {
     "revision": "57c558b2d792824e6b9d3f1072c25feb0f4b55c3",
     "url": "https://github.com/rudraptpsingh/askmill/actions/runs/41285809014",
     "python_versions": [
@@ -38,5 +42,31 @@
       "3.13"
     ],
     "conclusion": "success"
+  },
+  "alpha_version": "0.1.0a2",
+  "published_pdf2data_revision": "9b1799e5a9474b9c2bd1ed43610b5446e15d6848",
+  "local_legacy_revision": {
+    "sha": "cb3c0c7088d0c24f059e8d76483d75b274893605",
+    "published": false
+  },
+  "native_pdf2data_smoke": {
+    "source": "Generated Code: 42 END PDF; actual PDF2Data extraction, field derivation, crop rerender and import replay",
+    "model": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+    "revision": "sha256:5aab9ceb00124cc32fbf4a2bce98389d86ba4d576b4fd59bc7441d7d9135d4b4",
+    "reading": "Code: 42 END",
+    "source_flags_preserved": true,
+    "source_files_unchanged": true,
+    "attestation": "operator_import_not_inference_verified",
+    "scope": "Single reader; no consensus or legal approval"
+  },
+  "code_finding": {
+    "code_finding": {
+      "line": 3,
+      "quote": "return amount - tax",
+      "replacement": "return amount + tax",
+      "reason": "The function incorrectly subtracts tax from the amount instead of adding it to calculate the total."
+    },
+    "fixed_test_passed": true,
+    "code_generation_seconds": 1.2669626249698922
   }
 }

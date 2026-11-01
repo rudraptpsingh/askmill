@@ -30,6 +30,18 @@ def execute(args):
     if args.command == "list":
         return json.loads(Path(args.config).read_text())
     profile = load(args.config, args.profile)
+    if args.command == "read-fields":
+        from .pdf2data_fields import read_fields
+
+        return read_fields(
+            profile,
+            args.request,
+            args.output,
+            args.store,
+            args.lease,
+            args.max_tokens,
+            args.timeout,
+        )
     if args.command == "doctor":
         validate(profile.model_dump(exclude_none=True))
         return {
@@ -85,6 +97,16 @@ def main():
     batch = sub.add_parser("batch")
     batch.add_argument("--profile", required=True)
     batch.add_argument("--request", required=True, help="JSON Batch contract file")
+    fields = sub.add_parser("read-fields")
+    fields.add_argument("--profile", required=True)
+    fields.add_argument(
+        "--request",
+        required=True,
+        help="Verified PDF2Data field witness request bundle",
+    )
+    fields.add_argument("--output", required=True)
+    fields.add_argument("--max-tokens", type=int, default=2048)
+    fields.add_argument("--timeout", type=float, default=180.0)
     sub.add_parser("mcp")
     args = parser.parse_args()
     try:
@@ -111,7 +133,9 @@ def main():
         print(
             json.dumps(
                 {
-                    "status": getattr(error, "status", "invalid_or_unavailable"),
+                    "status": "cancelled"
+                    if isinstance(error, KeyboardInterrupt)
+                    else getattr(error, "status", "invalid_or_unavailable"),
                     "error": str(error),
                 }
             )

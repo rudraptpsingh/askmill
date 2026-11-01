@@ -1,37 +1,84 @@
-# AskMill phased implementation
+# AskMill implementation and validation
 
-Goal: one reusable local inference package for developers and application hosts. No private product code or fixtures are needed to install or test.
+Goal: create an open-source local text/vision runner with portable profiles,
+bounded sessions, immutable receipts, CLI, optional MCP/skill and PDF2Data
+compatibility; record validation and remaining hardware/product gates.
 
-| Phase | Goal | Gate / outcome | Status |
-|---|---|---|---|
-| 1 | Portable contracts and package | Clean install; strict request/profile/result schemas; no weights required | Passed |
-| 2 | Warm sessions and receipts | Two items, one model load; replay committed items; preserve incomplete output | Passed synthetic gate |
-| 3 | Providers and cleanup | MLX offline, external Ollama, timeouts; no external service termination | Real synthetic MLX and Ollama smoke passed; ownership limits below |
-| 4 | Codex and PDF2Data boundary | CLI/MCP share runner; old profile conversion; preserve consumer checks | CLI/MCP and conversion passed; downstream adoption open |
-| 5 | Release qualification | Wheel clean install, CI, public fixtures, hardware smoke | Wheel built; clean-wheel test suite passed; remote CI passed on Python 3.10/3.12/3.13 |
+| Phase | Goal | Acceptance outcome |
+|---|---|---|
+| 1 | Independent public repo and portable contracts | MIT repo; clean package build; versioned profile/request/batch/result schemas; no model dependencies required for base install |
+| 2 | Bounded warm execution and receipts | One load across a batch; frozen image/prompt/settings; atomic receipts and replay; corrupted receipts rejected; runtime changes invalidate cache |
+| 3 | Providers and resource ownership | Real MLX vision and Ollama text runs; shared leases; cloud-backed Ollama rejected; interrupt/timeout/parent-crash checks; separate settlement receipts |
+| 4 | Callers and PDF2Data | CLI and MCP batch calls; installed skill; published PDF2Data field-witness API adapter; separate legacy-branch conformance checks |
+| 5 | Qualification and handoff | Source and clean-wheel suites; three Python CI versions; published consumer CI; real bounded code finding independently tested; exact release evidence below |
 
-## Validation ledger, 1 November 2026
+## Current validation, 1 November 2026
 
-- Phase 1: editable install and seven strict contract tests passed. Initial GitHub CI passed on Python 3.10, 3.12 and 3.13.
-- Phase 2: HTTP-stub session tests check worker reuse, restarted receipt replay, incomplete output, corruption rejection, device exclusion and timeout quarantine. Synthetic MLX modules prove one load across two requests and replay after restart without another load. An owned-worker timeout is reaped and a retry succeeds. A parent SIGKILL during the second item preserves the first committed receipt and keeps the GPU lease with the surviving worker until it exits.
-- First session run exposed a redirected shutdown response and a cleanup race. Both were corrected before phase 3. A later formatting pass removed a fixture import; moving the shared fixture to conftest.py resolved it before the final suite.
-- Phase 3: actual cached Qwen3-VL-8B through MLX read the synthetic 42 twice in one worker. Replay reused its receipt. Both existing host GPU leases were acquired. Actual Qwen3 8B through a dedicated local Ollama test server answered 6 + 7 as 13. The test host verified unload and stopped only its own server.
-- Model-directory identity hashes all local files; Ollama preflight verifies its tag and digest. Timing summaries in [validation evidence](validation-2026-11-01.json) exclude hashing/setup. These smoke tests establish neither provider superiority nor real-document accuracy.
-- Phase 4: CLI preserves incomplete output with exit 3. An actual MCP stdio client initializes, discovers and invokes the same runner. PDF2Data MLX profile conversion preserves interpreter/cache paths and never edits the source file. Skill validation passed. The CLI supports bounded batch JSON and MCP exposes run_batch, both keeping one warm session. Installed host configuration can supply shared lease_paths; a busy configured lease prevents generation. The shared MLX shim and original PDF2Data Session both read the same real synthetic crop as 42; the second shared call replayed its receipt. This checks only the Session boundary.
-- 24 automated tests pass from the source install. A separate virtual environment installs the built wheel and runs the same tests without an editable package. Public examples use synthetic text and a generated number image.
+- Core suite: **29 passed** without PDF2Data; optional consumer modules skip.
+- Published PDF2Data environment: **33 passed**, with the legacy-only module
+  skipped. Four integration cases use actual native PDF extraction, field
+  derivation, source-image rerender, import replay, truncation handling and
+  rejection of mutated source/overlapping output paths.
+- Legacy named-AI environment: **34 passed**, with the public-main integration
+  module skipped. Five local cases preserve ai add/list/probe/run, source hashes,
+  prompts, image order, budgets, one load per batch, incomplete exit 3, device
+  metadata, and formula-review holds. Its baseline commit is not published;
+  this is explicitly a local compatibility claim.
+- MCP tests use an actual stdio client to initialize, discover and invoke both
+  run and run_batch. CLI interrupt returns cancelled/130 and reaps the worker.
+- Receipt replay is independent of caller acknowledgement. Tests kill a parent
+  during item two, preserve item one and the live worker's inherited lease, then
+  retry only item two. An external worker writes timeout quarantine even after
+  its parent dies. External servers are never stopped by the runner.
+- Runtime/cache identity includes Python, relevant MLX/transformer versions,
+  Ollama version and the transport implementation hash. Ollama model identity
+  and local capabilities are checked before input and after generation.
+- Separate integrity-checked settlements record worker reaping, closed lease
+  handles and external termination acknowledgement. A missing settlement does
+  not imply cleanup. Results and settlements never grant domain acceptance.
+- Real MLX: Qwen3-VL-8B read a generated 42 twice in a warm worker; receipt replay
+  reused the first item. The published PDF2Data adapter also read Code: 42 END
+  from a generated PDF and reverified all native source files unchanged.
+- Real Ollama: Qwen3 8B answered 6 + 7 and identified the exact faulty line in a
+  synthetic invoice function. The parent checked the quote/replacement and ran
+  the corrected function's assertion. The dedicated test server was unloaded
+  and stopped by its test host, not by AskMill.
+- The executable, skill and local qwen profile are installed on the development
+  host. That profile uses the existing shared GPU locks and leaves PDF2Data's
+  configuration unchanged.
+- Build, source and wheel evidence is recorded in
+  [validation-2026-11-01.json](validation-2026-11-01.json).
+  [Completion audit](COMPLETION_AUDIT.md) maps the objective to concrete checks.
 
-Final source revision `57c558b` passed [GitHub CI](https://github.com/rudraptpsingh/askmill/actions/runs/41285809014) on Python 3.10, 3.12 and 3.13. The same revision passed 24 tests from the source install and from the rebuilt wheel. AskMill's executable and skill are installed on the development host; its qwen profile preserves the existing PDF2Data config and uses the host's existing GPU locks. Fresh-chat usage and downstream product acceptance remain separate gates.
+The initial implementation exposed shutdown-response redirection, a cleanup
+race, lost device metadata and a test fixture import issue. These were corrected
+before qualification. The first native hardware verifier used a relative path
+where the consumer requires an absolute path; the corrected verifier passed.
 
-## Remaining gates and next work
+## Supported integration and remaining gates
 
-1. The opt-in MLXSession compatibility adapter passes a real synthetic side-by-side reading against the original PDF2Data Session. Next prove two-crop order, prompt, budget, one-load behavior, review holds, receipts and exit-code parity against the current consumer. Do not switch defaults yet.
-2. Ollama identity is checked before and after generation; a mid-call tag change is rejected without committing a result. Next pin runtime versions in cache identity and define settlement receipts. Owned Ollama mode, crash recovery and memory admission are still unimplemented.
-3. Owned MLX parent-crash recovery passes a synthetic test: kill the parent during item two, retain the inherited worker lock, replay item one and retry item two. Full host-death and external-server crash recovery remain open. Queue fairness, multi-user scope enforcement and authorization belong to a separately qualified host layer.
-4. Run a real bilingual/source-bound case downstream and the Query/Impact source validators. A synthetic 42 and arithmetic question do not qualify that product path.
-5. Use the installed skill in fresh chats in two repositories and verify a real code finding. Keep cloud profiles explicitly selected and out of local-only fallback.
+Read [pdf2data.md](pdf2data.md) for exact consumer revisions and commands.
 
-The default runner supports external Ollama and owned MLX workers on POSIX. It intentionally rejects OpenAI-compatible profiles until model attestation exists. No consumer default or product review status has changed.
+The qualified alpha is a POSIX local runner with external Ollama and owned MLX
+workers. OpenAI-compatible profiles are explicitly unsupported until attested;
+no hosted fallback or model downloads occur. Remote endpoint attestation,
+Windows, owned Ollama lifecycle, memory admission, queue fairness, multi-user
+authorization and full host-death recovery are future qualification work.
 
-## Cross-chat continuation
+PDF2Data's public field-witness import stays operator-imported and unapproved.
+Its default replacement and Query's existing owned-server/lease boundary have
+not been migrated. Those rollouts need owner-specific parity, bilingual/corpus
+and held-out source cases. Do not nest AskMill lease acquisition beneath an
+existing caller-held device lease.
 
-Read this file and AGENTS.md. Inspect the current revision and rerun the affected checks. Take the first remaining gate, record the exact command and outcome, and commit the validated increment. Keep private model configuration, raw receipts and domain fixtures outside this repository. The goal remains active until required downstream gates are met.
+Installed CLI/SDK/MCP and skill behavior are tested. Two new Codex chats and a
+matched end-to-end speed comparison have not been run; no speedup percentage or
+legal/document-accuracy claim follows from the smoke cases.
+
+## Continuation
+
+The initial runner objective can close after the release checks and completion
+audit pass. Subsequent consumer-default or hardware/product expansion should
+take the corresponding gate above, preserve its owner checks, and record the
+tested runtime/model/revision. Keep private inputs, host profiles and raw
+receipts out of this repository.

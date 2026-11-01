@@ -72,8 +72,12 @@ class Result(Strict):
     revision: str
     generated_tokens: int | None = None
     seconds: float
+    runtime: dict[str, str] = Field(default_factory=dict)
+    device: str | None = None
+    peak_device_memory_bytes: int | None = None
     receipt_id: str
     attempt_id: str
+    session_id: str
     replayed: bool = False
     domain_acceptance: Literal["unverified"] = "unverified"
 

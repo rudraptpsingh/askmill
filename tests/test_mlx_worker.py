@@ -5,53 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from askmill import Profile, Request
-from askmill.profiles import model_revision
+from askmill import Request
 from askmill.runner import RunError, Session
-
-
-@pytest.fixture
-def mlx_profile(tmp_path, monkeypatch):
-    modules = tmp_path / "modules"
-    (modules / "mlx").mkdir(parents=True)
-    (modules / "mlx" / "__init__.py").write_text("")
-    (modules / "mlx" / "core.py").write_text("""
-class metal:
-    @staticmethod
-    def is_available(): return True
-gpu = 'gpu'
-def set_default_device(x): pass
-def default_device(): return gpu
-def get_peak_memory(): return 100
-def clear_cache(): pass
-""")
-    (modules / "mlx_vlm.py").write_text("""
-import os,time
-from pathlib import Path
-from types import SimpleNamespace
-def load(path):
-    assert os.environ['HF_HUB_OFFLINE']=='1'
-    p=Path(os.environ['LOAD_COUNTER'])
-    p.write_text(p.read_text()+'load\\n' if p.exists() else 'load\\n')
-    return object(),SimpleNamespace(apply_chat_template=lambda *a,**k: 'template')
-def generate(*args,**kwargs):
-    if os.environ.get('SLOW_FIXTURE'): time.sleep(5)
-    return SimpleNamespace(text='42',generation_tokens=2)
-""")
-    monkeypatch.setenv("PYTHONPATH", str(modules))
-    monkeypatch.setenv("LOAD_COUNTER", str(tmp_path / "loads"))
-    cache = tmp_path / "model"
-    cache.mkdir()
-    (cache / "config.json").write_text("{}")
-    return Profile(
-        provider="mlx-vlm",
-        model="synthetic",
-        revision=model_revision(cache),
-        model_path=str(cache),
-        python=sys.executable,
-        ownership="worker",
-        capabilities=["text", "vision"],
-    )
 
 
 def test_batch_loads_once_and_replays_without_generation(mlx_profile, tmp_path):
@@ -174,6 +129,64 @@ with Session(Profile.model_validate_json(sys.argv[1]),sys.argv[2],sys.argv[3]) a
         finally:
             recovered.close()
         assert len(list((tmp_path / "r").glob("*.json"))) == 2
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait()
+
+
+def test_cli_interrupt_reports_cancelled_and_reaps_worker(
+    mlx_profile, tmp_path, monkeypatch
+):
+    import json
+    import signal
+    import subprocess
+    import time
+
+    monkeypatch.setenv("SLOW_FIXTURE", "1")
+    config = tmp_path / "profiles.json"
+    config.write_text(
+        json.dumps(
+            {
+                "schema_version": "askmill.profiles.v1",
+                "profiles": {"test": mlx_profile.model_dump()},
+            }
+        )
+    )
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("slow")
+    child = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "askmill.cli",
+            "--config",
+            str(config),
+            "--store",
+            str(tmp_path / "r"),
+            "--lease",
+            str(tmp_path / "lock"),
+            "run",
+            "--profile",
+            "test",
+            "--input",
+            str(prompt),
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while not (tmp_path / "loads").exists():
+            assert child.poll() is None and time.monotonic() < deadline
+            time.sleep(0.01)
+        child.send_signal(signal.SIGINT)
+        stdout, stderr = child.communicate(timeout=10)
+        assert child.returncode == 130, (stdout, stderr)
+        assert json.loads(stdout)["status"] == "cancelled"
+        settlements = list((tmp_path / "r/settlements").glob("*.json"))
+        assert json.loads(settlements[0].read_text())["content"]["worker_reaped"]
     finally:
         if child.poll() is None:
             child.kill()

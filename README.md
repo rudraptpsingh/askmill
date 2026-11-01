@@ -53,13 +53,21 @@ with Session(profile, store=".local/receipts", lease="/path/to/shared-gpu.lock")
 
 For CLI batches use `askmill batch --profile NAME --request batch.json` with `{"schema_version":"askmill.batch.v1","requests":[{"prompt":"first"},{"prompt":"second"}]}`. MCP exposes the same warm path as `run_batch`. Batches contain at most 16 items and one hour of total generation deadlines.
 
-The worker loads the model once per session. Every item freezes actual inputs and commits an integrity-checked receipt atomically. Replaying the same request/profile in the same store reuses a completed item, including an incomplete result; change the request/budget for a fresh attempt. A model process interrupted before commit is retried by the caller. The [synthetic vision example](examples/vision_batch.py) reads a printed 42 twice.
+The worker loads the model once per session. Every item freezes actual inputs and commits an integrity-checked receipt atomically. Cache identity includes the worker/runtime versions and transport implementation hash. After closure, a separate integrity-checked settlement receipt records worker reaping, closed lease handles and whether the external request acknowledged termination. It never claims to stop an externally owned server. A result produced before a parent crash may have no settlement receipt; do not infer cleanup from result existence alone. Replaying the same request/profile in the same store reuses a completed item, including an incomplete result; change the request/budget for a fresh attempt. A model process interrupted before commit is retried by the caller. The [synthetic vision example](examples/vision_batch.py) reads a printed 42 twice.
 
 ## Coding assistants
 
 The optional MCP command is `askmill --config /absolute/profiles.json --store /workspace/receipts mcp`. Configure your MCP client to launch that executable with those arguments. The `run` and `run_batch` tools use the same session and receipt implementation as Python and the CLI.
 
 The reusable skill is [skills/askmill/SKILL.md](skills/askmill/SKILL.md). Copy its folder to your coding assistant's skill directory after installing the executable. It guides bounded local calls and verification; it does not replace the parent assistant.
+
+## PDF2Data
+
+Use `askmill read-fields` with PDF2Data's published field-witness request/import
+API. The integration preserves native fields, source hashes and review flags.
+See [the exact supported revision and commands](docs/pdf2data.md). The legacy
+named-AI bridge is separately qualified against a local, unpublished feature
+branch; it is not a public rc7 capability.
 
 ## Ownership and limits
 
