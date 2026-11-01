@@ -65,7 +65,9 @@ External Ollama is never stopped or unloaded by AskMill. If a request times out,
 
 Supported in this alpha: strict contracts, text/vision, local profiles, receipt replay, bounded sessions, generation timeout, device exclusion, CLI, MCP and non-mutating PDF2Data MLX profile conversion. Local loopback/private HTTP endpoints only, with proxies and redirects disabled. No automatic cloud fallback or model downloads.
 
-Not yet qualified: owned Ollama server management; OpenAI-compatible model attestation; Windows; shared multi-user service/authentication; queue fairness; full crash recovery after sudden host/parent death; memory admission; provider performance comparisons; PDF2Data/Query default migration. OpenAI-compatible profiles are explicitly rejected by the public runner until identity verification is implemented.
+Not yet qualified: owned Ollama server management; OpenAI-compatible model attestation; Windows; shared multi-user service/authentication; queue fairness; full host-death/external-server crash recovery; memory admission; provider performance comparisons; PDF2Data/Query default migration. OpenAI-compatible profiles are explicitly rejected by the public runner until identity verification is implemented.
+
+The opt-in `askmill.pdf2data.MLXSession` shim preserves the legacy generate/close boundary for MLX; full consumer migration is separately gated.
 
 Evidence review, PDF cropping, source corrections, domain acceptance, batch retries and access checks remain with the caller. Receipts are integrity checks, not signed provenance. Protect their store against unauthorized writes. These checks do not establish legal accuracy or production readiness.
 

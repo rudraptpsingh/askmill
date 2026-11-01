@@ -2,7 +2,7 @@
   "date": "2026-11-01",
   "qualification": "alpha synthetic workloads only; not downstream domain acceptance",
   "platform": "Darwin arm64",
-  "automated_tests": 19,
+  "automated_tests": 22,
   "mlx": {
     "model": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
     "revision": "sha256:5aab9ceb00124cc32fbf4a2bce98389d86ba4d576b4fd59bc7441d7d9135d4b4",
@@ -22,5 +22,11 @@
     "generation_seconds": 1.9631817089393735,
     "unloaded_after_test": true
   },
-  "timing_scope": "Generation only; excludes model-file hashing and host setup. Not a matched provider comparison."
+  "timing_scope": "Generation only; excludes model-file hashing and host setup. Not a matched provider comparison.",
+  "pdf2data_session_parity": {
+    "synthetic_reading": "42",
+    "complete": true,
+    "second_shared_read_replayed": true,
+    "scope": "Session boundary only"
+  }
 }

@@ -75,20 +75,7 @@ class Session:
                 raise RunError("cleanup_uncertain", "Device is quarantined")
             validate(self.profile.model_dump(exclude_none=True))
             if self.profile.provider == "ollama":
-                tags = http_request(self.profile.model_dump(), "api/tags", timeout=10)
-                actual = next(
-                    (
-                        m.get("digest")
-                        for m in tags.get("models", [])
-                        if m.get("name") == self.profile.model
-                    ),
-                    None,
-                )
-                if actual != self.profile.revision:
-                    raise RunError(
-                        "model_mismatch",
-                        "Installed Ollama tag/digest differs from profile",
-                    )
+                self._verify_ollama()
             if self.profile.provider == "mlx-vlm":
                 from .profiles import model_revision
 
@@ -125,6 +112,21 @@ class Session:
         except BaseException:
             self.close()
             raise
+
+    def _verify_ollama(self):
+        tags = http_request(self.profile.model_dump(), "api/tags", timeout=10)
+        actual = next(
+            (
+                m.get("digest")
+                for m in tags.get("models", [])
+                if m.get("name") == self.profile.model
+            ),
+            None,
+        )
+        if actual != self.profile.revision:
+            raise RunError(
+                "model_mismatch", "Installed Ollama tag/digest differs from profile"
+            )
 
     def _exchange(self, message, timeout):
         self.worker.stdin.write(json.dumps(message).encode() + b"\n")
@@ -209,6 +211,12 @@ class Session:
                     },
                     request.timeout,
                 )
+                if self.profile.provider == "ollama":
+                    self._verify_ollama()
+                if raw["model"] != self.profile.model:
+                    raise RunError(
+                        "model_mismatch", "Response model differs from profile"
+                    )
             except BaseException:
                 # HTTP disconnect is NOT proof the server stopped computing.
                 if self.profile.ownership == "external":

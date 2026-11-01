@@ -8,18 +8,26 @@ from askmill import Profile
 
 @pytest.fixture
 def endpoint():
-    state = {"calls": [], "delay": 0, "complete": True}
+    state = {
+        "calls": [],
+        "delay": 0,
+        "complete": True,
+        "revision": "sha256:test",
+        "mutate_revision": False,
+    }
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
 
         def do_GET(self):
-            self.reply({"models": [{"name": "fixture:1", "digest": "sha256:test"}]})
+            self.reply({"models": [{"name": "fixture:1", "digest": state["revision"]}]})
 
         def do_POST(self):
             data = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             state["calls"].append((self.path, data))
+            if state["mutate_revision"]:
+                state["revision"] = "changed"
             time.sleep(state["delay"])
             self.reply(
                 {

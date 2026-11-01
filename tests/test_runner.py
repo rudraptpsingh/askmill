@@ -84,3 +84,14 @@ def test_freeze_image_and_output_candidates(endpoint, tmp_path):
         state["calls"][0][1]["messages"][0]["images"]
         != state["calls"][1][1]["messages"][0]["images"]
     )
+
+
+def test_tag_change_during_generation_never_commits(endpoint, tmp_path):
+    profile, state = endpoint
+    state["mutate_revision"] = True
+    with Session(profile, tmp_path / "r", tmp_path / "lock") as session:
+        with pytest.raises(RunError) as error:
+            session.run(Request(prompt="candidate with changed model"))
+        assert error.value.status == "model_mismatch"
+    assert not list((tmp_path / "r").glob("*.json"))
+    assert (tmp_path / "lock.unsettled").exists()

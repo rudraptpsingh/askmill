@@ -87,3 +87,94 @@ def test_model_mutation_rejected_before_load(mlx_profile, tmp_path):
             pass
     assert error.value.status == "model_mismatch"
     assert not (tmp_path / "loads").exists()
+
+
+def test_pdf2data_session_shim_preserves_generation_boundary(mlx_profile, tmp_path):
+    from askmill.pdf2data import MLXSession
+
+    profile = {
+        "provider": "mlx-vlm",
+        "model": mlx_profile.model,
+        "python": mlx_profile.python,
+        "model_path": mlx_profile.model_path,
+    }
+    before = dict(profile)
+    session = MLXSession(profile, store=tmp_path / "r", lease=tmp_path / "lock")
+    try:
+        first = session.generate("first", (), 64, 10)
+        second = session.generate("second", (), 64, 10)
+    finally:
+        session.close()
+    assert profile == before
+    assert first["text"] == second["text"] == "42"
+    assert first["complete"] and first["generated_tokens"] == 2
+    assert (tmp_path / "loads").read_text().splitlines() == ["load"]
+
+
+def test_parent_crash_preserves_commit_and_worker_lease(
+    mlx_profile, tmp_path, monkeypatch
+):
+    import subprocess
+    import time
+    from askmill.runner import RunError
+
+    # Signal from inside generation, so the parent dies after item one committed
+    # and while item two is running.
+    module = tmp_path / "modules" / "mlx_vlm.py"
+    code = module.read_text()
+    code = code.replace(
+        "lambda *a,**k: 'template'",
+        "lambda messages,**k: messages[0]['content'][-1]['text']",
+    )
+    code = code.replace(
+        "if os.environ.get('SLOW_FIXTURE'): time.sleep(5)",
+        "if args[2]=='slow':\n        Path(os.environ['SECOND_STARTED']).write_text('started')\n        time.sleep(.5)",
+    )
+    module.write_text(code)
+    monkeypatch.setenv("SECOND_STARTED", str(tmp_path / "started"))
+    store, lease = str(tmp_path / "r"), str(tmp_path / "lease")
+    script = """
+import json,sys
+from askmill import Profile, Request
+from askmill.runner import Session
+with Session(Profile.model_validate_json(sys.argv[1]),sys.argv[2],sys.argv[3]) as session:
+    session.run(Request(prompt='first'))
+    session.run(Request(prompt='slow'))
+"""
+    child = subprocess.Popen(
+        [sys.executable, "-c", script, mlx_profile.model_dump_json(), store, lease],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while not (tmp_path / "started").exists():
+            assert time.monotonic() < deadline
+            assert child.poll() is None
+            time.sleep(0.01)
+        child.kill()
+        child.wait()
+        assert len(list((tmp_path / "r").glob("*.json"))) == 1
+        with pytest.raises(RunError) as error:
+            with Session(mlx_profile, store, lease):
+                pass
+        assert error.value.status == "busy"  # inherited by the live worker
+        # Worker finishes its bounded fixture, sees EOF and releases its lock.
+        deadline = time.monotonic() + 10
+        while True:
+            try:
+                recovered = Session(mlx_profile, store, lease).__enter__()
+                break
+            except RunError as error:
+                assert error.status == "busy" and time.monotonic() < deadline
+                time.sleep(0.05)
+        try:
+            assert recovered.run(Request(prompt="first")).replayed
+            assert not recovered.run(Request(prompt="slow")).replayed
+        finally:
+            recovered.close()
+        assert len(list((tmp_path / "r").glob("*.json"))) == 2
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait()

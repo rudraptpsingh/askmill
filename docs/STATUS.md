@@ -13,18 +13,18 @@ Goal: one reusable local inference package for developers and application hosts.
 ## Validation ledger, 1 November 2026
 
 - Phase 1: editable install and seven strict contract tests passed. Initial GitHub CI passed on Python 3.10, 3.12 and 3.13.
-- Phase 2: HTTP-stub session tests check worker reuse, restarted receipt replay, incomplete output, corruption rejection, device exclusion and timeout quarantine. Synthetic MLX modules prove one load across two requests and replay after restart without another load. An owned-worker timeout is reaped and a retry succeeds.
+- Phase 2: HTTP-stub session tests check worker reuse, restarted receipt replay, incomplete output, corruption rejection, device exclusion and timeout quarantine. Synthetic MLX modules prove one load across two requests and replay after restart without another load. An owned-worker timeout is reaped and a retry succeeds. A parent SIGKILL during the second item preserves the first committed receipt and keeps the GPU lease with the surviving worker until it exits.
 - First session run exposed a redirected shutdown response and a cleanup race. Both were corrected before phase 3. A later formatting pass removed a fixture import; moving the shared fixture to conftest.py resolved it before the final suite.
 - Phase 3: actual cached Qwen3-VL-8B through MLX read the synthetic 42 twice in one worker. Replay reused its receipt. Both existing host GPU leases were acquired. Actual Qwen3 8B through a dedicated local Ollama test server answered 6 + 7 as 13. The test host verified unload and stopped only its own server.
 - Model-directory identity hashes all local files; Ollama preflight verifies its tag and digest. Timing summaries in [validation evidence](validation-2026-11-01.json) exclude hashing/setup. These smoke tests establish neither provider superiority nor real-document accuracy.
-- Phase 4: CLI preserves incomplete output with exit 3. An actual MCP stdio client initializes, discovers and invokes the same runner. PDF2Data MLX profile conversion preserves interpreter/cache paths and never edits the source file. Skill validation passed.
-- 19 automated tests pass from the source install. A separate virtual environment installs the built wheel and runs the same tests without an editable package. Public examples use synthetic text and a generated number image.
+- Phase 4: CLI preserves incomplete output with exit 3. An actual MCP stdio client initializes, discovers and invokes the same runner. PDF2Data MLX profile conversion preserves interpreter/cache paths and never edits the source file. Skill validation passed. The shared MLX shim and original PDF2Data Session both read the same real synthetic crop as 42; the second shared call replayed its receipt. This checks only the Session boundary.
+- 22 automated tests pass from the source install. A separate virtual environment installs the built wheel and runs the same tests without an editable package. Public examples use synthetic text and a generated number image.
 
 ## Remaining gates and next work
 
-1. Add a PDF2Data compatibility adapter behind an explicit optional integration, then prove two-crop order, prompt, budget, one-load behavior, review holds, receipts and exit-code parity against the current consumer. Do not switch defaults yet.
-2. Verify Ollama identity after each call as well as before, and define settlement receipts. Owned Ollama mode, crash recovery and memory admission are still unimplemented.
-3. Prove interrupted multi-item recovery with process termination between commits, not just normal session restarts. Queue fairness, multi-user scope enforcement and authorization belong to a separately qualified host layer.
+1. The opt-in MLXSession compatibility adapter passes a real synthetic side-by-side reading against the original PDF2Data Session. Next prove two-crop order, prompt, budget, one-load behavior, review holds, receipts and exit-code parity against the current consumer. Do not switch defaults yet.
+2. Ollama identity is checked before and after generation; a mid-call tag change is rejected without committing a result. Next pin runtime versions in cache identity and define settlement receipts. Owned Ollama mode, crash recovery and memory admission are still unimplemented.
+3. Owned MLX parent-crash recovery passes a synthetic test: kill the parent during item two, retain the inherited worker lock, replay item one and retry item two. Full host-death and external-server crash recovery remain open. Queue fairness, multi-user scope enforcement and authorization belong to a separately qualified host layer.
 4. Run a real bilingual/source-bound case downstream and the Query/Impact source validators. A synthetic 42 and arithmetic question do not qualify that product path.
 5. Use the installed skill in fresh chats in two repositories and verify a real code finding. Keep cloud profiles explicitly selected and out of local-only fallback.
 
