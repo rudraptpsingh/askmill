@@ -206,3 +206,26 @@ is now the qualified 1.30 series and the isolated probe passes after upgrade.
 Final installed-wheel/main/release checks are recorded in the a6 release assets.
 Live generation/cache adoption and source/client approval remain pending their
 separate consumer gates.
+
+## Execution-mode lessons from real consumers
+
+Reviewed the real completed/incomplete CERC generation receipts, acknowledged
+settlements, isolated CLI/MCP admission controls and Query's real deterministic
+source-only qualification. The demonstrated gap was guidance: a cap, a generic
+structured port call, zero fresh inference and zero runner initialization were
+being discussed as interchangeable. Session replay still acquires leases and
+performs runtime checks; a cache miss can dispatch inference. CLI/MCP refusals
+before Session need caller-retained error artifacts, not an invented model
+receipt. EXECUTION_MODES.md now states those boundaries, replay settlement
+binding and separate scope/domain/performance gates.
+
+No new owning engine defect was demonstrated. The qualified a6 release,
+schemas, device leases, frozen failures and consumer/runtime pins are retained.
+This guidance update performs no inference, warmup or new query runs; current
+Query source_rules_only remains without an initialized AI runner. Private
+evidence pins and selective read-only checks are kept outside the public repo.
+Selective verification rechecked two real result/settlement pairs, the three
+existing source-only rows sharing one original/page, caller-retained CLI/MCP
+refusals, 22 relative documentation links and bounded-load equivalence for the
+actual request. Provider/runner guards observed zero calls/initializations;
+these repeated inspections add no new source or answer accuracy cases.

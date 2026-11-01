@@ -6,6 +6,10 @@ Use actual original/native records and Map type/section/required-field guidance.
 The model proposes questions; it never supplies gold answers or expected facts.
 No new engine or domain interpreter is required in AskMill.
 
+Preparation and call caps do not authorize model dispatch. A consumer in
+`source_rules_only` keeps this request unexecuted and initializes no AI runner.
+See [execution-mode and failure-evidence guidance](EXECUTION_MODES.md).
+
 ## Contract and cheap admission
 
 Prepare an explicit `askmill.request.v2` with a SHA-pinned response-schema
@@ -51,7 +55,7 @@ registry = load_json(config_path)
 profile = load(config_path, pinned_profile_name)
 batch = Batch(
     schema_version="askmill.batch.v2",
-    requests=[Request.model_validate_json(p.read_bytes())
+    requests=[Request.model_validate(load_json(p))
               for p in admitted_request_paths],
 )
 with Session(profile, store=workspace_receipts,

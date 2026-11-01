@@ -29,9 +29,12 @@ by the old single-call limitation.
 All three tools now reject unknown top-level arguments instead of letting the
 SDK discard them. Argument objects are bounded to 8 MiB before tool execution;
 single requests additionally retain the 4 MiB request, 128-source and 512 KiB
-source-metadata admission gates. Invalid, duplicate, unknown, out-of-count or
-oversize input is refused before `Session` construction. Error summaries name
-the failed gate without echoing an entire source-bound argument object.
+source-metadata admission gates. Argument-shape, duplicate-source-ID,
+unknown-field, source-count and JSON-byte faults are refused before `Session`
+construction. Actual image bytes and provider/device identity are checked in
+the shared Session path; caller source/context preflight remains required.
+Error summaries name the failed gate without echoing an entire source-bound
+argument object.
 MCP SDK framing owns its raw JSON-RPC byte parser; this does not claim new
 duplicate-key detection for bytes the SDK has already parsed.
 
@@ -73,3 +76,7 @@ source quality, semantic/numeric/legal approval and the customer's review
 state require their separate consumer gates. The previous CLI/SDK/lease/cache
 and output contracts remain unchanged; `complete` and response-schema validity
 never grant domain acceptance.
+
+Discovery/admission guards and source-only execution have separate scopes.
+Use [the execution-mode guidance](EXECUTION_MODES.md) to distinguish zero model
+dispatch from runner initialization, receipt replay and source/domain approval.

@@ -61,6 +61,10 @@ The optional MCP command is `askmill --config /absolute/profiles.json --store /w
 
 The reusable skill is [skills/askmill/SKILL.md](skills/askmill/SKILL.md). Copy its folder to your coding assistant's skill directory after installing the executable. It guides bounded local calls and verification; it does not replace the parent assistant.
 
+Choose the authorized [execution mode](docs/EXECUTION_MODES.md) before opening a
+Session. A call cap does not authorize inference, and receipt replay still
+initializes the runner. Source-only consumers keep their AI runner absent.
+
 ## PDF2Data
 
 Use `askmill read-fields` with PDF2Data's published field-witness request/import
