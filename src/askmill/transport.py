@@ -142,6 +142,7 @@ class Session:
         if not 1 <= max_tokens <= 16384:
             raise ValueError("Use max tokens 1..16384")
         profile = self.profile
+        settings = profile.get("generation") or {}
         image_values = image_data(images)
         started = time.perf_counter()
         if profile["provider"] == "mlx-vlm":
@@ -161,19 +162,43 @@ class Session:
             content = [{"type": "image"} for _ in images] + [
                 {"type": "text", "text": prompt}
             ]
-            template = self.processor.apply_chat_template(
-                [{"role": "user", "content": content}],
-                tokenize=False,
-                add_generation_prompt=True,
-            )
+            template_options = {}
+            if settings and settings.get("thinking") is not None:
+                template_options["enable_thinking"] = settings["thinking"]
+            if settings.get("mlx_template") == "model":
+                from mlx_vlm.prompt_utils import apply_chat_template
+
+                config = json.loads(
+                    (Path(profile["model_path"]) / "config.json").read_text()
+                )
+                template = apply_chat_template(
+                    self.processor,
+                    config,
+                    prompt,
+                    num_images=len(images),
+                    **template_options,
+                )
+            else:
+                template = self.processor.apply_chat_template(
+                    [{"role": "user", "content": content}],
+                    tokenize=False,
+                    add_generation_prompt=True,
+                    **template_options,
+                )
+            sampling = {
+                key: settings[key]
+                for key in ("top_p", "top_k")
+                if settings.get(key) is not None
+            }
             result = generate(
                 self.model,
                 self.processor,
                 template,
                 image=[str(p) for p in images] if images else None,
                 max_tokens=max_tokens,
-                temp=0.0,
+                temp=settings.get("temperature", 0.0),
                 verbose=False,
+                **sampling,
             )
             tokens = getattr(result, "generation_tokens", None)
             return dict(
@@ -189,18 +214,25 @@ class Session:
             message = {"role": "user", "content": prompt}
             if image_values:
                 message["images"] = [b for _, b in image_values]
-            raw = request(
-                profile,
-                "api/chat",
-                dict(
-                    model=profile["model"],
-                    messages=[message],
-                    stream=False,
-                    think=False,
-                    options=dict(temperature=0, num_predict=max_tokens),
-                ),
-                timeout,
+            options = dict(
+                temperature=settings.get("temperature", 0.0), num_predict=max_tokens
             )
+            for name, wire in (
+                ("context_tokens", "num_ctx"),
+                ("top_p", "top_p"),
+                ("top_k", "top_k"),
+            ):
+                if settings.get(name) is not None:
+                    options[wire] = settings[name]
+            payload = dict(
+                model=profile["model"],
+                messages=[message],
+                stream=False,
+                options=options,
+            )
+            if settings.get("thinking", False) is not None:
+                payload["think"] = settings.get("thinking", False)
+            raw = request(profile, "api/chat", payload, timeout)
             text = raw.get("message", {}).get("content")
             tokens = raw.get("eval_count")
             complete = (
@@ -239,7 +271,14 @@ class Session:
             complete = choices[0].get("finish_reason") == "stop" and (
                 type(tokens) is not int or tokens < max_tokens
             )
-        if not isinstance(text, str) or not text.strip():
+        if (
+            profile["provider"] == "ollama"
+            and not complete
+            and (text is None or text == "")
+            and raw.get("message", {}).get("thinking")
+        ):
+            text = ""  # Reasoning used the budget: preserve an explicitly incomplete result.
+        elif not isinstance(text, str) or not text.strip():
             raise ValueError(
                 "Local model returned no textual answer; no tool calls are executed"
             )

@@ -9,7 +9,14 @@ from .runner import Session
 
 
 def read_fields(
-    profile, request_bundle, output, store, lease, max_tokens=2048, timeout=180.0
+    profile,
+    request_bundle,
+    output,
+    store,
+    lease,
+    max_tokens=2048,
+    timeout=180.0,
+    prompt=None,
 ):
     from local_vector_batch import field_witness as consumer
 
@@ -39,7 +46,7 @@ def read_fields(
                 raise ValueError("Source image changed before reading")
             result = session.run(
                 Request(
-                    prompt=consumer.PROMPT,
+                    prompt=consumer.PROMPT if prompt is None else prompt,
                     images=[str(image)],
                     max_tokens=max_tokens,
                     timeout=float(timeout),
@@ -78,6 +85,7 @@ def read_fields(
         "request_sha256": request_sha,
         "regions": rows,
         "execution_receipts": receipts,
+        "execution_prompt": consumer.PROMPT if prompt is None else prompt,
     }
     version_key = "mlx-vlm" if profile.provider == "mlx-vlm" else "ollama_version"
     metadata = {

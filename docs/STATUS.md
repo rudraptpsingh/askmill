@@ -89,3 +89,22 @@ audit pass. Subsequent consumer-default or hardware/product expansion should
 take the corresponding gate above, preserve its owner checks, and record the
 tested runtime/model/revision. Keep private inputs, host profiles and raw
 receipts out of this repository.
+
+
+## a3 model configuration update
+
+The user's public-research selection is implemented in profile v2, with explicit
+reasoning/sampling/context controls and model-aware MLX templates. Selected host
+roles use Qwen3.5 9B for coding, Gemma 4 E4B for general/visual work and PaddleOCR
+for document recognition. This supersedes the proposed new local benchmark
+campaign, not the consumers' source acceptance checks.
+
+Eight regression cases were added; expected suite totals are 37 core, 41 with
+published PDF2Data, and 42 with the local legacy consumer. The staged v2 registry
+is promoted only after the a3 installed executable checks it. This resolves
+the router's observed a2 executable/v2 profile mismatch. a2 profiles and package
+bytes remain available; other consumer adoption is pending explicit pin updates.
+
+See releases/v0.1.0a3.md, MODEL_SELECTION_2026-11-01.md and the sanitized smoke
+summary. Main, immutable package checksums, CI and host installed-use evidence
+are recorded in the release assets.

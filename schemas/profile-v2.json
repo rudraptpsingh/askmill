@@ -1,0 +1,208 @@
+{
+  "$defs": {
+    "GenerationSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "temperature": {
+          "default": 0.0,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Temperature",
+          "type": "number"
+        },
+        "top_p": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Top P"
+        },
+        "top_k": {
+          "anyOf": [
+            {
+              "maximum": 200,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Top K"
+        },
+        "context_tokens": {
+          "anyOf": [
+            {
+              "maximum": 32768,
+              "minimum": 512,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Context Tokens"
+        },
+        "thinking": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "xhigh"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "title": "Thinking"
+        },
+        "mlx_template": {
+          "default": "processor",
+          "enum": [
+            "processor",
+            "model"
+          ],
+          "title": "Mlx Template",
+          "type": "string"
+        }
+      },
+      "title": "GenerationSettings",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "askmill.profile.v2",
+      "type": "string",
+      "default": "askmill.profile.v2"
+    },
+    "provider": {
+      "enum": [
+        "mlx-vlm",
+        "ollama",
+        "openai-compatible"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "model": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "revision": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Revision",
+      "type": "string"
+    },
+    "capabilities": {
+      "items": {
+        "enum": [
+          "text",
+          "vision"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Capabilities",
+      "type": "array"
+    },
+    "python": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Python"
+    },
+    "model_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Path"
+    },
+    "base_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Base Url"
+    },
+    "api_key_env": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Api Key Env"
+    },
+    "ownership": {
+      "default": "external",
+      "enum": [
+        "external",
+        "worker"
+      ],
+      "title": "Ownership",
+      "type": "string"
+    },
+    "generation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GenerationSettings"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "provider",
+    "model",
+    "revision",
+    "capabilities",
+    "schema_version"
+  ],
+  "title": "Profile",
+  "type": "object"
+}

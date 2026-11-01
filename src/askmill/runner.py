@@ -154,6 +154,26 @@ class Session:
             raise RunError(
                 "unsupported", "Cloud-backed Ollama models are not local profiles"
             )
+        if self.profile.generation:
+            selected = self.profile.generation.thinking
+            controls = details.get("thinking", {})
+            values = controls.get("values")
+            if (
+                selected is not None
+                and values is not None
+                and not any(
+                    type(selected) is type(value) and selected == value
+                    for value in values
+                )
+            ):
+                raise RunError(
+                    "unsupported",
+                    "Selected thinking control is unsupported by this model",
+                )
+            if selected is None:
+                self.runtime["ollama_default_thinking"] = json.dumps(
+                    controls.get("default")
+                )
         capabilities = details.get("capabilities", [])
         if any(
             ("completion" if capability == "text" else capability) not in capabilities

@@ -184,6 +184,8 @@ def test_native_field_cli_returns_incomplete_exit(
             str(tmp_path / "reading"),
             "--max-tokens",
             "128",
+            "--prompt",
+            "OCR:",
         ],
         capture_output=True,
         text=True,

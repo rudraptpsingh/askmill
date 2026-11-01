@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+from . import __version__
 from .contract import Batch, Request
 from .profiles import from_pdf2data, load, model_revision
 from .runner import Session, run_batch
@@ -41,11 +42,13 @@ def execute(args):
             args.lease,
             args.max_tokens,
             args.timeout,
+            prompt=args.prompt,
         )
     if args.command == "doctor":
         validate(profile.model_dump(exclude_none=True))
         return {
             "status": "configuration_valid",
+            "runner_version": __version__,
             "provider": profile.provider,
             "model": profile.model,
             "inference_tested": False,
@@ -72,6 +75,7 @@ def execute(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="askmill " + __version__)
     parser.add_argument(
         "--config", default=str(Path.home() / ".config/askmill/profiles.json")
     )
@@ -105,6 +109,10 @@ def main():
         help="Verified PDF2Data field witness request bundle",
     )
     fields.add_argument("--output", required=True)
+    fields.add_argument(
+        "--prompt",
+        help="Explicit specialist transcription prompt; retained with the reading",
+    )
     fields.add_argument("--max-tokens", type=int, default=2048)
     fields.add_argument("--timeout", type=float, default=180.0)
     sub.add_parser("mcp")

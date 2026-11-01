@@ -69,3 +69,9 @@ MCP extra.
 Future consumer-default migration still needs the owner's source-bound bilingual
 and held-out cases. A generated PDF proves the integration mechanics, not
 accuracy on regulatory PDFs.
+
+
+For a specialist profile such as PaddleOCR, a3 permits an explicit task prompt:
+add --prompt 'OCR:' to read-fields. The actual prompt is retained in
+external-readings.json alongside execution receipt IDs. The default remains
+PDF2Data's transcription prompt when no override is supplied.

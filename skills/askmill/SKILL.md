@@ -15,3 +15,17 @@ Exit 3 retains incomplete output; exit 2 reports a failure. Inspect the JSON sta
 If cleanup is uncertain, stop that workload and verify the external service settled before clearing the quarantine marker. Do not stop another client's service.
 
 For an existing PDF2Data field-witness request, use `read-fields` and a new output directory. The caller owns rendering, evidence validation and review state; a successful inference is not approval.
+
+
+For a host configured with AskMill a3 role profiles, choose the task profile
+explicitly after checking available names with `askmill list`:
+- dev-code: bounded code/log analysis and patch suggestions.
+- general: general analysis or source-bound structured questions.
+- vision-review: a second visual reading; preserve disagreement.
+- pdf-ocr: use the prompt OCR: for literal OCR.
+- pdf-table: use Table Recognition: for a table crop.
+- pdf-formula: use Formula Recognition: for a formula crop.
+
+Profile names are local configuration, not mandatory model families. Inference
+never changes consumer source acceptance. Existing pinned work should retain its
+saved profile/revision rather than silently moving to another role.

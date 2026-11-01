@@ -1,0 +1,54 @@
+{
+  "release": "0.1.0a3",
+  "basis": "Public primary studies and model cards; local checks are functional integration only.",
+  "tests": {
+    "core": 37,
+    "published_pdf2data": 41,
+    "legacy_pdf2data": 42
+  },
+  "models": {
+    "dev-code": {
+      "model": "qwen3.5:9b-q4_K_M",
+      "revision": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+      "complete": true,
+      "seconds": 2.2591760409995914,
+      "generated_tokens": 56,
+      "receipt_id": "768497d3cc71d8f6ea515e971c83d1a33d301674fd4a565bd14a09831ec146aa"
+    },
+    "dev-code-reason": {
+      "model": "qwen3.5:9b-q4_K_M",
+      "revision": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+      "complete": true,
+      "seconds": 48.0931598340394,
+      "generated_tokens": 2639,
+      "receipt_id": "3a9678a6ec999ef918d5b1209569fa5a72cf68591a23641ad17feea8406ea606"
+    },
+    "general": {
+      "model": "gemma4:e4b",
+      "revision": "0314351184bcfc7f88ba25bdaec896325ed6adcc5371674a988be35cd120101d",
+      "complete": true,
+      "seconds": 6.859995833947323,
+      "generated_tokens": 205,
+      "receipt_id": "a0512ee20f07999f1735931b5ed8fe8954ea13e4c75e8d6d2b7d7a9bd4491d1a"
+    },
+    "pdf-ocr": {
+      "model": "mlx-community/PaddleOCR-VL-1.5-4bit",
+      "revision": "sha256:3f43c4c3b19169377c76461786b199e3866a0c57c0036a9003c53eb7890738fa",
+      "complete": true,
+      "seconds": 1.3915962500032037,
+      "generated_tokens": 3,
+      "receipt_id": "9f97478360e0a956b7e55b57d44cc78296c8bb0888fc09ff549c2b814c85ae0a"
+    }
+  },
+  "pdf2data": {
+    "source": "Generated Code: 42 END PDF; actual PDF2Data extraction, field derivation, crop rerender and import replay",
+    "model": "mlx-community/PaddleOCR-VL-1.5-4bit",
+    "revision": "sha256:3f43c4c3b19169377c76461786b199e3866a0c57c0036a9003c53eb7890738fa",
+    "reading": "Code: 42 END",
+    "source_flags_preserved": true,
+    "source_files_unchanged": true,
+    "attestation": "operator_import_not_inference_verified",
+    "scope": "Single reader; no consensus or legal approval"
+  },
+  "integration_limits": "Smoke observations are not a matched model ranking or legal/source-quality approval."
+}

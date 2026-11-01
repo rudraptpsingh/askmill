@@ -18,6 +18,9 @@ def endpoint():
         "mutate_revision": False,
         "runtime": "test-version",
         "remote": False,
+        "thinking_values": [False, True, "low", "medium", "high"],
+        "answer": "candidate",
+        "reasoning": None,
     }
 
     class Handler(BaseHTTPRequestHandler):
@@ -36,6 +39,10 @@ def endpoint():
                     {
                         "capabilities": ["completion", "vision"],
                         "remote_host": "cloud.example" if state["remote"] else None,
+                        "thinking": {
+                            "values": state["thinking_values"],
+                            "default": False,
+                        },
                     }
                 )
             state["calls"].append((self.path, data))
@@ -48,7 +55,10 @@ def endpoint():
                     "done": True,
                     "done_reason": "stop" if state["complete"] else "length",
                     "eval_count": 1,
-                    "message": {"content": "candidate"},
+                    "message": {
+                        "content": state["answer"],
+                        "thinking": state["reasoning"],
+                    },
                 }
             )
 

@@ -1,5 +1,12 @@
 """AskMill local inference API."""
 
-from .contract import Batch, Profile, Request, Result
+from importlib.metadata import PackageNotFoundError, version
 
-__all__ = ["Batch", "Profile", "Request", "Result"]
+from .contract import Batch, GenerationSettings, Profile, Request, Result
+
+__all__ = ["GenerationSettings", "Batch", "Profile", "Request", "Result"]
+
+try:
+    __version__ = version("askmill")
+except PackageNotFoundError:
+    __version__ = "uninstalled"

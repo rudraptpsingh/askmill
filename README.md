@@ -82,3 +82,12 @@ The opt-in `askmill.pdf2data.MLXSession` shim preserves the legacy generate/clos
 Evidence review, PDF cropping, source corrections, domain acceptance, batch retries and access checks remain with the caller. Receipts are integrity checks, not signed provenance. Protect their store against unauthorized writes. These checks do not establish legal accuracy or production readiness.
 
 See [phase gates and validation evidence](docs/STATUS.md), [contributing](CONTRIBUTING.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
+
+## Task profiles and model settings
+
+See [research-based selections](docs/MODEL_SELECTION_2026-11-01.md) and the
+[profile v2 schema](schemas/profile-v2.json). Version 2 permits per-model
+thinking, bounded context and sampling settings, plus model-aware MLX templates.
+Existing v1 profiles retain their behavior. Role names are host configuration;
+use `askmill list` before choosing one. A fast and reasoning profile may share
+the same weights. The dedicated host service is managed outside the runner.

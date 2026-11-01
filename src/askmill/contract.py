@@ -3,15 +3,33 @@
 import math
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+    model_serializer,
+)
 
 
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
+class GenerationSettings(Strict):
+    temperature: float = Field(default=0.0, ge=0, le=2)
+    top_p: float | None = Field(default=None, gt=0, le=1)
+    top_k: int | None = Field(default=None, ge=0, le=200)
+    context_tokens: int | None = Field(default=None, ge=512, le=32768)
+    thinking: bool | Literal["low", "medium", "high", "xhigh"] | None = False
+    mlx_template: Literal["processor", "model"] = "processor"
+
+
 class Profile(Strict):
-    schema_version: Literal["askmill.profile.v1"] = "askmill.profile.v1"
+    schema_version: Literal["askmill.profile.v1", "askmill.profile.v2"] = (
+        "askmill.profile.v1"
+    )
     provider: Literal["mlx-vlm", "ollama", "openai-compatible"]
     model: str = Field(min_length=1, max_length=300)
     revision: str = Field(min_length=1, max_length=300)
@@ -21,9 +39,32 @@ class Profile(Strict):
     base_url: str | None = None
     api_key_env: str | None = None
     ownership: Literal["external", "worker"] = "external"
+    generation: GenerationSettings | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_profile(self, handler):
+        data = handler(self)
+        if self.schema_version == "askmill.profile.v1":
+            data.pop("generation", None)
+        return data
 
     @model_validator(mode="after")
     def supported(self):
+        if self.generation and self.schema_version != "askmill.profile.v2":
+            raise ValueError("Generation settings require askmill.profile.v2")
+        if self.generation and self.provider == "mlx-vlm":
+            if self.generation.context_tokens is not None:
+                raise ValueError(
+                    "Explicit context allocation is supported by Ollama profiles only"
+                )
+            if isinstance(self.generation.thinking, str):
+                raise ValueError("MLX thinking requires a boolean or null")
+        if (
+            self.generation
+            and self.provider != "mlx-vlm"
+            and self.generation.mlx_template != "processor"
+        ):
+            raise ValueError("MLX templates require the MLX provider")
         if self.provider == "mlx-vlm":
             if not self.python or not self.model_path or self.ownership != "worker":
                 raise ValueError("MLX requires python, model_path and worker ownership")
