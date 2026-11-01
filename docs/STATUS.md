@@ -55,6 +55,13 @@ race, lost device metadata and a test fixture import issue. These were corrected
 before qualification. The first native hardware verifier used a relative path
 where the consumer requires an absolute path; the corrected verifier passed.
 
+Release code revision `503c2fac22a84a7ab5be1a33a1bd12ab90daf6a5`
+passed [CI run 41287184550](https://github.com/rudraptpsingh/askmill/actions/runs/41287184550):
+29 core tests on Python 3.10, 3.12 and 3.13, plus four published PDF2Data
+integration cases. A fresh wheel-only environment separately passed 29 core
+tests, then 33 after installing the pinned public consumer. That environment
+imports AskMill from site-packages, not the checkout.
+
 ## Supported integration and remaining gates
 
 Read [pdf2data.md](pdf2data.md) for exact consumer revisions and commands.

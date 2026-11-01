@@ -68,5 +68,22 @@
     },
     "fixed_test_passed": true,
     "code_generation_seconds": 1.2669626249698922
+  },
+  "ci": {
+    "revision": "503c2fac22a84a7ab5be1a33a1bd12ab90daf6a5",
+    "url": "https://github.com/rudraptpsingh/askmill/actions/runs/41287184550",
+    "conclusion": "success",
+    "core_python_versions": [
+      "3.10",
+      "3.12",
+      "3.13"
+    ],
+    "published_consumer_tests": 4
+  },
+  "wheel_validation": {
+    "fresh_environment": true,
+    "editable": false,
+    "base_tests": 29,
+    "published_consumer_tests_with_core": 33
   }
 }
