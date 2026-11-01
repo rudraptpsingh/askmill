@@ -1,0 +1,2 @@
+part-a: Apply the rule only when the flag is enabled.
+part-b: Skip the rule during maintenance.

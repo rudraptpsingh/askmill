@@ -137,3 +137,16 @@ source ID with a valid pinned schema, replayed correctly and recorded worker
 reaping/acknowledged settlement without quarantine. This is a transport smoke,
 not document-corpus or semantic-extractor acceptance. The installed default
 remains a3; PDF2Data pins and existing jobs are unchanged.
+
+## Installed a4 producer-adoption fixture
+
+`examples/structured-source-id` provides one complete request and an executable
+integration fixture for the released a4 CLI. Against the checksum-pinned,
+noneditable installed wheel it passes six cases plus success replay: completion,
+schema-invalid output, malformed/valid-JSON truncation, unsupported schema and
+bad schema pin. Four synthetic HTTP-stub generation calls are made; replay and
+request rejections add none. Actual raw outputs, schema/cache/receipt integrity
+and acknowledged worker cleanup are retained in the private execution folder.
+The fixture uses no model inference or real GPU leases and changes no producer,
+profile, engine or release. The README gives exact CLI, SDK result and receipt
+paths, and keeps schema validity separate from PDF2Data's source acceptance.

@@ -1,0 +1,34 @@
+{
+  "schema_version": "askmill.request.v2",
+  "prompt": "part-a: Apply the rule only when the flag is enabled.\npart-b: Skip the rule during maintenance.\nSelect the condition source. Return only JSON with source_id; choose from part-a or part-b.",
+  "images": [],
+  "max_tokens": 128,
+  "timeout": 10.0,
+  "sources": [
+    {
+      "id": "synthetic-scope",
+      "reference": "fixture:source.txt",
+      "content_sha256": "bef7cf48e301ce1fbb44f8763d7fc4f5da7cf7c7951c77b8c46ef6fd62f2e214"
+    }
+  ],
+  "response_schema": {
+    "schema_version": "askmill.response-schema.v1",
+    "document": {
+      "type": "object",
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "enum": [
+            "part-a",
+            "part-b"
+          ]
+        }
+      },
+      "required": [
+        "source_id"
+      ],
+      "additionalProperties": false
+    },
+    "sha256": "84dc641a7cadaaf4951d7d7f5fcb940eaff4ce4da1a43a5fedf5a618cbb24af5"
+  }
+}
