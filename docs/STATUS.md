@@ -229,3 +229,23 @@ existing source-only rows sharing one original/page, caller-retained CLI/MCP
 refusals, 22 relative documentation links and bounded-load equivalence for the
 actual request. Provider/runner guards observed zero calls/initializations;
 these repeated inspections add no new source or answer accuracy cases.
+
+## Offline capacity evidence, 2 November 2026
+
+Added the repository-only capacity_preflight.py utility and CAPACITY_PREFLIGHT.md.
+It validates a frozen request against a separately pinned installed wheel and
+records profile/manifest/template identities, byte counts, output reservation
+and unknown tokenization/capacity. No runner/CLI/MCP engine behavior changes and
+no new inference release or consumer default migration are required.
+
+Eight focused offline software controls pass, including metadata refusal before
+weight-container access and unchanged input checks. Ruff passes for the utility
+and focused tests. Separately, an actual repaired consumer request passes the
+immutable a6 validator with a declared 8192 context and 2048 output reservation;
+6144 is arithmetic only, with no exact token count or fit claim. A private audit
+hook observed no network/model/lease/weight operations and no runner import;
+request, registry, manifest, execution reference, wheel and utility hashes stayed
+unchanged. The older unsupported-pattern descriptor and its refusal evidence
+remain frozen. Caller-owned post-validation, execution authorization, source
+semantics, identity/scope, performance and capacity gates remain independent.
+This repeated inspection adds no source/document accuracy case.

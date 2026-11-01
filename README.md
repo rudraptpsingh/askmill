@@ -64,6 +64,9 @@ The reusable skill is [skills/askmill/SKILL.md](skills/askmill/SKILL.md). Copy i
 Choose the authorized [execution mode](docs/EXECUTION_MODES.md) before opening a
 Session. A call cap does not authorize inference, and receipt replay still
 initializes the runner. Source-only consumers keep their AI runner absent.
+For request/profile evidence without starting a runner, use the repository-only
+[offline capacity preflight](docs/CAPACITY_PREFLIGHT.md). Tokenization and fit
+remain unknown until independently qualified.
 
 ## PDF2Data
 
