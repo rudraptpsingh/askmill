@@ -140,6 +140,13 @@ remains a3; PDF2Data pins and existing jobs are unchanged.
 
 ## Installed a4 producer-adoption fixture
 
+Historical transport evidence only. The later real-source-only user correction
+supersedes this fixture as a current adoption deliverable. Preserve its original
+receipts; exclude its six cases, canned outputs and synthetic model smokes from
+current real-document coverage, accuracy, client eligibility and acceptance.
+Current demos/evaluations must use actual sources and extracted records, with
+the existing authorized customer profile and its review state preserved.
+
 `examples/structured-source-id` provides one complete request and an executable
 integration fixture for the released a4 CLI. Against the checksum-pinned,
 noneditable installed wheel it passes six cases plus success replay: completion,

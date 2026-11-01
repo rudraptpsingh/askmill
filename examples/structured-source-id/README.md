@@ -1,5 +1,11 @@
 # Installed a4 source-ID integration fixture
 
+**Historical transport fixture.** Preserved for reproducibility. The user's
+subsequent real-source-only instruction excludes this synthetic fixture from
+current project demos, evaluations, document coverage and acceptance. Do not
+use it as the current PDF2Data adoption case. Current work must use verified
+actual source packets and retain the authorized customer's review holds.
+
 This fixture uses the published **AskMill 0.1.0a4 wheel**, SHA256
 `6a17f43435df1fd9388331903b2383d4f8fb94ffd48e3fc2acafc4be2edb2745`.
 It starts a loopback HTTP stub with canned responses, executes the installed
