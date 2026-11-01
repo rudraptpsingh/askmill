@@ -1,8 +1,8 @@
 """Optional MCP transport over the same profile/session API."""
 
-from .contract import Request
+from .contract import Batch, Request
 from .profiles import load
-from .runner import Session
+from .runner import Session, run_batch as execute_batch
 
 
 def create_server(config, store, lease):
@@ -24,6 +24,12 @@ def create_server(config, store, lease):
         )
         with Session(load(config, profile), store, lease) as session:
             return session.run(request).model_dump()
+
+    @server.tool()
+    def run_batch(profile: str, requests: list[dict]) -> dict:
+        """Run up to 16 bounded local tasks in one warm model session."""
+        batch = Batch(requests=[Request.model_validate(item) for item in requests])
+        return execute_batch(load(config, profile), batch, store, lease)
 
     return server
 

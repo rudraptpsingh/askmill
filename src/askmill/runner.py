@@ -300,3 +300,13 @@ class Session:
 
     def __exit__(self, *args):
         self.close()
+
+
+def run_batch(profile, batch, store, lease):
+    """Return results in caller order in one bounded warm session."""
+    with Session(profile, store, lease) as session:
+        results = [session.run(request).model_dump() for request in batch.requests]
+    return {
+        "status": "completed" if all(r["complete"] for r in results) else "incomplete",
+        "results": results,
+    }

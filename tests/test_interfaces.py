@@ -111,12 +111,58 @@ def test_mcp_stdio_calls_shared_runner(endpoint, tmp_path):
             async with ClientSession(read, write) as client:
                 await client.initialize()
                 tools = await client.list_tools()
-                assert [tool.name for tool in tools.tools] == ["run"]
+                assert [tool.name for tool in tools.tools] == ["run", "run_batch"]
                 result = await client.call_tool(
                     "run", {"profile": "test", "prompt": "Explain this log."}
                 )
                 assert not result.isError
                 assert "candidate" in result.content[0].text
+                batch = await client.call_tool(
+                    "run_batch",
+                    {"profile": "test", "requests": [{"prompt": "a"}, {"prompt": "b"}]},
+                )
+                assert not batch.isError
+                assert batch.content[0].text.count("candidate") == 2
 
     anyio.run(check)
-    assert len(state["calls"]) == 1
+    assert len(state["calls"]) == 3
+
+
+def test_cli_uses_host_configured_shared_locks(endpoint, tmp_path):
+    import fcntl
+
+    profile, state = endpoint
+    lock_path = tmp_path / "shared.lock"
+    config = tmp_path / "profiles.json"
+    config.write_text(
+        json.dumps(
+            {
+                "schema_version": "askmill.profiles.v1",
+                "profiles": {"test": profile.model_dump()},
+                "lease_paths": [str(lock_path)],
+            }
+        )
+    )
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Read")
+    with lock_path.open("a+b") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        child = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "askmill.cli",
+                "--config",
+                str(config),
+                "run",
+                "--profile",
+                "test",
+                "--input",
+                str(prompt),
+            ],
+            capture_output=True,
+            text=True,
+        )
+    assert child.returncode == 2
+    assert json.loads(child.stdout)["status"] == "busy"
+    assert not state["calls"]

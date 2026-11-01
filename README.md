@@ -26,7 +26,7 @@ askmill --config profiles.json --store .local/receipts run \
 
 The CLI always prints JSON. Exit 0 means completed; 3 preserves incomplete output; 2 means failure; 130 means interruption. A completed response still needs your task's tests or evidence checks.
 
-**Use the same device lease paths across every caller.** Repeat global `--lease PATH` for multiple existing locks. AskMill's default lock does not coordinate unrelated runtimes that use different paths. Keep receipt stores private to each authorized workspace; they contain exact prompts and image bytes.
+**Use the same device lease paths across every caller.** Set `"lease_paths": ["/absolute/shared-gpu.lock"]` at the top level of the local profile file, or repeat global `--lease PATH` for multiple existing locks. AskMill's default lock does not coordinate unrelated runtimes that use different paths. Keep receipt stores private to each authorized workspace; they contain exact prompts and image bytes.
 
 ## Vision and Python batches
 
@@ -51,11 +51,13 @@ with Session(profile, store=".local/receipts", lease="/path/to/shared-gpu.lock")
         print(result.text, result.complete)
 ```
 
+For CLI batches use `askmill batch --profile NAME --request batch.json` with `{"schema_version":"askmill.batch.v1","requests":[{"prompt":"first"},{"prompt":"second"}]}`. MCP exposes the same warm path as `run_batch`. Batches contain at most 16 items and one hour of total generation deadlines.
+
 The worker loads the model once per session. Every item freezes actual inputs and commits an integrity-checked receipt atomically. Replaying the same request/profile in the same store reuses a completed item, including an incomplete result; change the request/budget for a fresh attempt. A model process interrupted before commit is retried by the caller. The [synthetic vision example](examples/vision_batch.py) reads a printed 42 twice.
 
 ## Coding assistants
 
-The optional MCP command is `askmill --config /absolute/profiles.json --store /workspace/receipts mcp`. Configure your MCP client to launch that executable with those arguments. The sole `run` tool uses the same session and receipt implementation as Python and the CLI.
+The optional MCP command is `askmill --config /absolute/profiles.json --store /workspace/receipts mcp`. Configure your MCP client to launch that executable with those arguments. The `run` and `run_batch` tools use the same session and receipt implementation as Python and the CLI.
 
 The reusable skill is [skills/askmill/SKILL.md](skills/askmill/SKILL.md). Copy its folder to your coding assistant's skill directory after installing the executable. It guides bounded local calls and verification; it does not replace the parent assistant.
 

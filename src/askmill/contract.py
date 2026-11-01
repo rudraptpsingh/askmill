@@ -76,3 +76,14 @@ class Result(Strict):
     attempt_id: str
     replayed: bool = False
     domain_acceptance: Literal["unverified"] = "unverified"
+
+
+class Batch(Strict):
+    schema_version: Literal["askmill.batch.v1"] = "askmill.batch.v1"
+    requests: list[Request] = Field(min_length=1, max_length=16)
+
+    @model_validator(mode="after")
+    def bounded(self):
+        if sum(item.timeout for item in self.requests) > 3600:
+            raise ValueError("Total batch generation deadlines exceed one hour")
+        return self

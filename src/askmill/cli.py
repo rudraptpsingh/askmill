@@ -5,9 +5,9 @@ import json
 import sys
 from pathlib import Path
 
-from .contract import Request
+from .contract import Batch, Request
 from .profiles import from_pdf2data, load, model_revision
-from .runner import Session
+from .runner import Session, run_batch
 from .transport import validate
 
 
@@ -38,6 +38,13 @@ def execute(args):
             "model": profile.model,
             "inference_tested": False,
         }
+    if args.command == "batch":
+        return run_batch(
+            profile,
+            Batch.model_validate_json(Path(args.request).read_text()),
+            args.store,
+            args.lease,
+        )
     if args.request:
         request = Request.model_validate_json(Path(args.request).read_text())
     else:
@@ -75,10 +82,27 @@ def main():
     run.add_argument("--image", action="append", default=[])
     run.add_argument("--max-tokens", type=int, default=2048)
     run.add_argument("--timeout", type=float, default=180.0)
+    batch = sub.add_parser("batch")
+    batch.add_argument("--profile", required=True)
+    batch.add_argument("--request", required=True, help="JSON Batch contract file")
     sub.add_parser("mcp")
     args = parser.parse_args()
-    args.lease = args.lease or [str(Path.home() / ".local/state/askmill/gpu.lock")]
     try:
+        if not args.lease:
+            config = Path(args.config)
+            data = json.loads(config.read_text()) if config.exists() else {}
+            leases = data.get(
+                "lease_paths", [str(Path.home() / ".local/state/askmill/gpu.lock")]
+            )
+            if (
+                not isinstance(leases, list)
+                or not 1 <= len(leases) <= 8
+                or any(
+                    not isinstance(p, str) or not Path(p).is_absolute() for p in leases
+                )
+            ):
+                raise ValueError("lease_paths must contain 1..8 absolute paths")
+            args.lease = leases
         value = execute(args)
         if value is not None:
             print(json.dumps(value, ensure_ascii=False))

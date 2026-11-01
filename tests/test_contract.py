@@ -34,3 +34,14 @@ def test_unsupported_ownership():
 def test_contract_roundtrip():
     request = Request(prompt="Read the printed qualifier.", sources=[])
     assert Request.model_validate_json(request.model_dump_json()) == request
+
+
+def test_batch_rejects_excess_work_before_loading():
+    from askmill.contract import Batch
+
+    with pytest.raises(ValidationError):
+        Batch(requests=[])
+    with pytest.raises(ValidationError):
+        Batch(requests=[Request(prompt="x")] * 17)
+    with pytest.raises(ValidationError):
+        Batch(requests=[Request(prompt="x", timeout=3600.0)] * 2)
