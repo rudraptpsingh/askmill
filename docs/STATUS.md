@@ -8,7 +8,7 @@ Goal: one reusable local inference package for developers and application hosts.
 | 2 | Warm sessions and receipts | Two items, one model load; replay committed items; preserve incomplete output | Passed synthetic gate |
 | 3 | Providers and cleanup | MLX offline, external Ollama, timeouts; no external service termination | Real synthetic MLX and Ollama smoke passed; ownership limits below |
 | 4 | Codex and PDF2Data boundary | CLI/MCP share runner; old profile conversion; preserve consumer checks | CLI/MCP and conversion passed; downstream adoption open |
-| 5 | Release qualification | Wheel clean install, CI, public fixtures, hardware smoke | Wheel built; clean-wheel test suite passed; final remote CI recorded below |
+| 5 | Release qualification | Wheel clean install, CI, public fixtures, hardware smoke | Wheel built; clean-wheel test suite passed; remote CI passed on Python 3.10/3.12/3.13 |
 
 ## Validation ledger, 1 November 2026
 
@@ -19,6 +19,8 @@ Goal: one reusable local inference package for developers and application hosts.
 - Model-directory identity hashes all local files; Ollama preflight verifies its tag and digest. Timing summaries in [validation evidence](validation-2026-11-01.json) exclude hashing/setup. These smoke tests establish neither provider superiority nor real-document accuracy.
 - Phase 4: CLI preserves incomplete output with exit 3. An actual MCP stdio client initializes, discovers and invokes the same runner. PDF2Data MLX profile conversion preserves interpreter/cache paths and never edits the source file. Skill validation passed. The CLI supports bounded batch JSON and MCP exposes run_batch, both keeping one warm session. Installed host configuration can supply shared lease_paths; a busy configured lease prevents generation. The shared MLX shim and original PDF2Data Session both read the same real synthetic crop as 42; the second shared call replayed its receipt. This checks only the Session boundary.
 - 24 automated tests pass from the source install. A separate virtual environment installs the built wheel and runs the same tests without an editable package. Public examples use synthetic text and a generated number image.
+
+Final source revision `57c558b` passed [GitHub CI](https://github.com/rudraptpsingh/askmill/actions/runs/41285809014) on Python 3.10, 3.12 and 3.13. The same revision passed 24 tests from the source install and from the rebuilt wheel. AskMill's executable and skill are installed on the development host; its qwen profile preserves the existing PDF2Data config and uses the host's existing GPU locks. Fresh-chat usage and downstream product acceptance remain separate gates.
 
 ## Remaining gates and next work
 
