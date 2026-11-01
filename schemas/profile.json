@@ -1,0 +1,109 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "askmill.profile.v1",
+      "default": "askmill.profile.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provider": {
+      "enum": [
+        "mlx-vlm",
+        "ollama",
+        "openai-compatible"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "model": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "revision": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Revision",
+      "type": "string"
+    },
+    "capabilities": {
+      "items": {
+        "enum": [
+          "text",
+          "vision"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Capabilities",
+      "type": "array"
+    },
+    "python": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Python"
+    },
+    "model_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Path"
+    },
+    "base_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Base Url"
+    },
+    "api_key_env": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Api Key Env"
+    },
+    "ownership": {
+      "default": "external",
+      "enum": [
+        "external",
+        "worker"
+      ],
+      "title": "Ownership",
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider",
+    "model",
+    "revision",
+    "capabilities"
+  ],
+  "title": "Profile",
+  "type": "object"
+}

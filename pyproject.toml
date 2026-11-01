@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "askmill"
+version = "0.1.0a1"
+description = "Run local text and vision models from code, terminal, or coding assistants."
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = ["pydantic>=2.10,<3"]
+readme = "README.md"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "build>=1", "ruff>=0.9"]
+mcp = ["mcp>=1.12,<2"]
+mlx = ["mlx-vlm>=0.7; sys_platform == 'darwin' and platform_machine == 'arm64'"]
+
+[project.scripts]
+askmill = "askmill.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

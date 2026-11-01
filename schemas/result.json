@@ -1,0 +1,82 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "askmill.result.v1",
+      "default": "askmill.result.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "incomplete"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "complete": {
+      "title": "Complete",
+      "type": "boolean"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "revision": {
+      "title": "Revision",
+      "type": "string"
+    },
+    "generated_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Generated Tokens"
+    },
+    "seconds": {
+      "title": "Seconds",
+      "type": "number"
+    },
+    "receipt_id": {
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "replayed": {
+      "default": false,
+      "title": "Replayed",
+      "type": "boolean"
+    },
+    "domain_acceptance": {
+      "const": "unverified",
+      "default": "unverified",
+      "title": "Domain Acceptance",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "text",
+    "complete",
+    "model",
+    "revision",
+    "seconds",
+    "receipt_id",
+    "attempt_id"
+  ],
+  "title": "Result",
+  "type": "object"
+}

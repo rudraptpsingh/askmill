@@ -1,0 +1,2 @@
+Synthetic example: expected invoice total 120, got 100.
+Explain which assertion to inspect. Do not edit files.
