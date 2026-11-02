@@ -354,3 +354,16 @@ controls, `tests/test_report_receipt_gate.py tests/test_json_gates.py` passed
 17 tests; no new inference or provider/service operation was performed. The
 consumer must pin its installed artifact and separately establish source, fit,
 authorization and actual report execution; this does not qualify R1.
+
+## Report host orchestration boundary
+
+Added a default-closed opt-in phase orchestration SDK with host-supplied policy,
+durable journal, provider and independently pinned receipt gate. Six synthetic
+controls passed for closed/unknown-fit refusal, exact frozen request, one attempt,
+uncertain interruption and receipt refusal. These callbacks prove software flow,
+not real provider, fit, source authorization or consumer acceptance. The
+existing pinned Qwen vocabulary-only static toolchain counted the exact Query
+alpha20 generation/review probes without inference: 3721/4040/22481 input tokens
+for generation/one/eight paragraph review; 4096 output tokens reserved. On its
+16384-context candidate the eight-paragraph probe exceeds by 10193. Source-to-
+binary identity and live allocation are not attested; R1 remains closed.
