@@ -2,7 +2,7 @@
 
 import fcntl
 import hashlib
-import importlib.util
+import types
 import json
 import math
 import os
@@ -19,7 +19,7 @@ import uuid
 from pydantic import Field, field_validator, model_validator
 
 from .contract import Strict
-from .jsonio import load
+from .jsonio import load, read_bytes
 
 
 class FilePin(Strict):
@@ -115,6 +115,17 @@ def verify_file(pin):
         raise ValueError("Pinned file differs: " + pin.path)
 
 
+def load_gate(pin):
+    """Execute exactly the pinned source bytes, never an import bytecode cache."""
+    raw = read_bytes(pin.path)
+    if sha(raw) != pin.sha256:
+        raise ValueError("Pinned context gate source differs")
+    module = types.ModuleType("askmill_embedding_context_gate")
+    module.__file__ = pin.path
+    exec(compile(raw, pin.path, "exec"), module.__dict__)
+    return module
+
+
 def write_new(path, value):
     with Path(path).open("x", encoding="utf-8") as stream:
         json.dump(
@@ -172,20 +183,51 @@ def http(endpoint, path, data=None, timeout=10):
     return json.loads(raw)
 
 
-def _stop_owned(process, psutil, known):
-    # Only observed descendants with unchanged PID/create-time can be signalled.
+def _signal_owned_group(process, psutil, parent_created, sig):
+    """Signal only while the original child identity and process group match."""
+    if parent_created is None:
+        return False
     try:
         parent = psutil.Process(process.pid)
-        for child in parent.children(recursive=True):
-            known.setdefault(child.pid, child.create_time())
+        if (
+            parent.create_time() != parent_created
+            or process.poll() is not None
+            or os.getpgid(process.pid) != process.pid
+        ):
+            return False
+        os.killpg(process.pid, sig)
+        return True
+    except (psutil.NoSuchProcess, ProcessLookupError):
+        return False
+
+
+def _stop_owned(process, psutil, known, parent_created):
+    # Never adopt children or signal a group unless the original parent identity
+    # is still verifiable. A missing/reused parent leaves cleanup uncertain.
+    if parent_created is None:
+        return False
+    try:
+        parent = psutil.Process(process.pid)
+        if parent.create_time() != parent_created or process.poll() is not None:
+            return False
+        observed = [
+            (child.pid, child.create_time())
+            for child in parent.children(recursive=True)
+        ]
+        if parent.create_time() != parent_created or process.poll() is not None:
+            return False
+        for child_pid, created in observed:
+            known.setdefault(child_pid, created)
     except psutil.NoSuchProcess:
-        pass
+        return False
     if process.poll() is None:
-        os.killpg(process.pid, signal.SIGTERM)
+        if not _signal_owned_group(process, psutil, parent_created, signal.SIGTERM):
+            return False
         try:
             process.wait(timeout=10)
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
+            if not _signal_owned_group(process, psutil, parent_created, signal.SIGKILL):
+                return False
             process.wait(timeout=5)
     remaining = []
     for pid, created in known.items():
@@ -240,12 +282,7 @@ def run_embedding(
         or psutil.__version__ != profile.psutil_version
     ):
         raise ValueError("Tokenizer or resource runtime version differs from profile")
-    verify_file(profile.context_gate)
-    spec = importlib.util.spec_from_file_location(
-        "askmill_embedding_context_gate", profile.context_gate.path
-    )
-    gate = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(gate)
+    gate = load_gate(profile.context_gate)
     if gate.authorize(profile.model_dump(), request.model_dump(), "before") is not True:
         raise ValueError("Current context gate refused")
     verify_model(profile)
@@ -269,6 +306,7 @@ def run_embedding(
         "request_sha256": request_sha256,
     }
     process = None
+    identity = None
     data_started = False
     data_ack = False
     cleanup_ack = False
@@ -382,8 +420,18 @@ def run_embedding(
                         if parent.create_time() != identity:
                             raise ValueError("Owned process identity changed")
                         children = parent.children(recursive=True)
-                        for child in children:
-                            known_children.setdefault(child.pid, child.create_time())
+                        observed = [
+                            (child.pid, child.create_time()) for child in children
+                        ]
+                        if (
+                            parent.create_time() != identity
+                            or process.poll() is not None
+                        ):
+                            raise ValueError(
+                                "Owned process identity changed during sampling"
+                            )
+                        for child_pid, created in observed:
+                            known_children.setdefault(child_pid, created)
                         processes = [parent, *children]
                         rss = sum(
                             p.memory_info().rss for p in processes if p.is_running()
@@ -404,11 +452,12 @@ def run_embedding(
                             raise ValueError("Embedding resource limit exceeded")
                     except BaseException as exc:
                         monitor_state["violation"] = type(exc).__name__ + ":" + str(exc)
-                        if (
-                            process.poll() is None
-                            and os.getpgid(process.pid) == process.pid
-                        ):
-                            os.killpg(process.pid, signal.SIGTERM)
+                        try:
+                            _signal_owned_group(
+                                process, psutil, identity, signal.SIGTERM
+                            )
+                        except Exception:
+                            pass
                         return
 
             monitor = threading.Thread(target=monitor_resources, daemon=True)
@@ -579,9 +628,17 @@ def run_embedding(
                 )
         if process is not None:
             try:
-                worker_settled = _stop_owned(process, psutil, known_children)
+                worker_settled = _stop_owned(process, psutil, known_children, identity)
             except BaseException:
                 worker_settled = False
+        # Reopen the complete pinned closure after owned process termination,
+        # before declaring settlement, clearing markers or delivering output.
+        if error is None and worker_settled:
+            try:
+                verify_file(profile.context_gate)
+                verify_model(profile)
+            except BaseException as exc:
+                error = exc
         safe_to_clear = (
             error is None
             and data_started
@@ -683,6 +740,23 @@ def run_embedding(
         raise ValueError(
             "Context revoked after embedding; retain artifacts without delivery"
         )
+    try:
+        verify_file(profile.context_gate)
+        verify_model(profile)
+    except BaseException as exc:
+        write_new(
+            output / "postflight.json",
+            {
+                "request_sha256": request_sha256,
+                "runtime_pins_match": False,
+                "error": type(exc).__name__,
+            },
+        )
+        raise
+    write_new(
+        output / "postflight.json",
+        {"request_sha256": request_sha256, "runtime_pins_match": True},
+    )
     for label, filename in (
         ("request_ref", "request.json"),
         ("profile_ref", "profile.json"),
@@ -690,6 +764,7 @@ def run_embedding(
         ("settlement_receipt", "settlement.json"),
         ("provider_response", "provider-response.json"),
         ("context_recheck", "context-recheck.json"),
+        ("postflight", "postflight.json"),
         ("ledger_confirmation", "ledger-confirmation.json"),
     ):
         path = output / filename

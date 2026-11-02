@@ -305,6 +305,36 @@ class EmbeddingControls(unittest.TestCase):
         self.assertTrue(receipt["quarantined"])
         self.assertTrue(Path(str(self.lease1) + ".unsettled").exists())
 
+    def test_runtime_drift_during_post_gate_is_durable_hold(self):
+        gate = b"from pathlib import Path\ndef authorize(profile,request,stage):\n    if stage == 'after': Path(profile['runtime_files'][0]['path']).write_bytes(b'changed-after-cleanup')\n    return True\ndef reserve(profile,request,sha): return 'synthetic-reservation'\ndef finalize(reservation,settlement): return True\n"
+        self.profile["context_gate"] = self.pin("gate-post-drift.py", gate)
+        self.profile_raw = json.dumps(self.profile).encode()
+        with self.assertRaisesRegex(ValueError, "Pinned file differs"):
+            self.run_fake()
+        self.assertFalse(
+            json.loads((self.root / "output" / "postflight.json").read_text())[
+                "runtime_pins_match"
+            ]
+        )
+        self.assertFalse((self.root / "output" / "result.json").exists())
+
+    def test_runtime_drift_after_provider_prevents_delivery(self):
+        def changed_runtime(endpoint, path, data=None, timeout=10):
+            result = self.fake_http(endpoint, path, data, timeout)
+            if path == "/api/embed" and data["input"]:
+                Path(self.profile["runtime_files"][0]["path"]).write_bytes(
+                    b"synthetic runtime changed"
+                )
+            return result
+
+        with self.assertRaisesRegex(ValueError, "Pinned file differs"):
+            self.run_fake(changed_runtime)
+        settlement = json.loads((self.root / "output" / "settlement.json").read_text())
+        self.assertEqual(settlement["data_requests_started"], 1)
+        self.assertEqual(settlement["cleanup_requests"], 1)
+        self.assertTrue(settlement["quarantined"])
+        self.assertFalse((self.root / "output" / "result.json").exists())
+
     def test_extra_dimensions_and_token_mismatch_refused(self):
         def mismatch(endpoint, path, data=None, timeout=10):
             if path == "/api/embed" and data["input"]:
@@ -323,6 +353,101 @@ class EmbeddingControls(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OwnershipAndLoaderControls(unittest.TestCase):
+    def test_reused_parent_is_never_inspected_or_signalled(self):
+        events = []
+
+        class NoSuchProcess(Exception):
+            pass
+
+        class ForeignParent:
+            def create_time(self):
+                return 999.0
+
+            def children(self, recursive=True):
+                events.append("foreign-children-inspected")
+                return []
+
+        fake_psutil = types.SimpleNamespace(
+            Process=lambda pid: ForeignParent(), NoSuchProcess=NoSuchProcess
+        )
+        process = types.SimpleNamespace(pid=101, poll=lambda: None)
+        with patch.object(
+            embedding.os, "killpg", side_effect=lambda *args: events.append("signal")
+        ):
+            self.assertFalse(embedding._stop_owned(process, fake_psutil, {}, 100.0))
+        self.assertEqual(events, [])
+
+    def test_monitor_cancellation_rejects_reused_parent(self):
+        class Missing(Exception):
+            pass
+
+        class ForeignParent:
+            def create_time(self):
+                return 999.0
+
+        api = types.SimpleNamespace(
+            Process=lambda pid: ForeignParent(), NoSuchProcess=Missing
+        )
+        process = types.SimpleNamespace(pid=101, poll=lambda: None)
+        with patch.object(embedding.os, "killpg") as send:
+            self.assertFalse(embedding._signal_owned_group(process, api, 100.0, 15))
+            send.assert_not_called()
+
+    def test_parent_identity_change_during_discovery_does_not_adopt(self):
+        class Missing(Exception):
+            pass
+
+        class Child:
+            pid = 202
+
+            def create_time(self):
+                return 200.0
+
+        class Parent:
+            def __init__(self):
+                self.calls = 0
+
+            def create_time(self):
+                self.calls += 1
+                return 100.0 if self.calls == 1 else 999.0
+
+            def children(self, recursive=True):
+                return [Child()]
+
+        parent = Parent()
+        fake_psutil = types.SimpleNamespace(
+            Process=lambda pid: parent, NoSuchProcess=Missing
+        )
+        process = types.SimpleNamespace(pid=101, poll=lambda: None)
+        known = {}
+        with patch.object(embedding.os, "killpg") as send:
+            self.assertFalse(embedding._stop_owned(process, fake_psutil, known, 100.0))
+            send.assert_not_called()
+        self.assertEqual(known, {})
+
+    def test_unverified_parent_identity_is_not_signalled(self):
+        process = types.SimpleNamespace(pid=101, poll=lambda: None)
+        with patch.object(embedding.os, "killpg") as send:
+            self.assertFalse(embedding._stop_owned(process, object(), {}, None))
+            send.assert_not_called()
+
+    def test_gate_executes_pinned_source_not_stale_bytecode(self):
+        import py_compile
+
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "gate.py"
+            old = b"VALUE = 'old'\n"
+            new = b"VALUE = 'new'\n"
+            path.write_bytes(old)
+            original = path.stat()
+            py_compile.compile(str(path), doraise=True)
+            path.write_bytes(new)
+            os.utime(path, ns=(original.st_atime_ns, original.st_mtime_ns))
+            pin = embedding.FilePin(path=str(path), sha256=digest(new))
+            self.assertEqual(embedding.load_gate(pin).VALUE, "new")
 
 
 class CliRegistrationControls(unittest.TestCase):

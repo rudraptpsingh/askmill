@@ -437,3 +437,25 @@ before provider startup, inherits leases into the owned provider and removes its
 markers only after confirmed owned cleanup; crash/reconciliation and live host
 callback provenance still require independent review and consumer qualification.
 No actual source encoding, provider process or model load occurred in these tests.
+
+## a8 embedding lifecycle corrections
+
+Independent a7 review found reused-parent PID descendant custody, pinned-gate
+bytecode caching, and absent post-execution runtime-pin checks. Do not use a7
+for live embeddings. a8 verifies the original provider PID/create-time before
+adopting or signalling descendants (including monitor cancellation), compiles
+the exact verified gate source bytes directly, and rechecks the complete model,
+tokenizer, provider, gate and runtime file closure after service termination and
+again after host callbacks before delivery. Pin drift holds output durably.
+Software controls cover reused/missing parent identities without OS signals,
+a benign stale-bytecode cache, and runtime changes during and after execution.
+Current authorization, consumer qualification and independent re-review remain
+required; no actual embedding/provider/model operation has been performed.
+
+A8 final pre-publication validation: 40 affected source tests, 18 isolated a8
+wheel controls and 17 adapted independent software replay controls passed. The
+reused-parent fixture records zero signals and the runtime-drift fixture produces
+no delivered result; the gate loader test executes benign pinned source despite
+a timestamp-valid stale bytecode cache. The isolated environment was installed
+from offline cache with tokenizers 0.22.2 and psutil 7.2.2. Independent re-review,
+actual host authority and Query consumer qualification remain outstanding.

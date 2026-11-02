@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "askmill"
-version = "0.1.0a7"
+version = "0.1.0a8"
 description = "Run local text and vision models from code, terminal, or coding assistants."
 requires-python = ">=3.10"
 license = "MIT"
