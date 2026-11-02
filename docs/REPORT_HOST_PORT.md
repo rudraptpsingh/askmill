@@ -1,4 +1,4 @@
-# Report host port v0.1.0
+# Report host port v0.1.1 candidate
 
 `tools/report_host_port.py` is an opt-in SDK coordination boundary for one generation or source-review attempt. It starts closed and has no built-in provider, policy, journal, model, default profile, retry or fallback. A host explicitly supplies four trusted implementations:
 
@@ -6,6 +6,8 @@
 * `journal.reserve(phase)` durably and exclusively reserves the phase across processes/restarts, refuses prior/uncertain reservations, and returns a nonempty token. `complete` persists verified provider evidence; `uncertain` must durably prevent automatic retry. Journal failures require operator reconciliation. The in-memory duplicate check is supplemental and is not a durable ledger.
 * `provider.invoke_once(phase, exact_request_bytes, reservation)` is a host implementation pinned to the intended AskMill runtime/profile and shared lease paths. It must retain request, actual raw stdout, native receipt and settlement, never silently retry or switch models, and return a pinned manifest for the separately installed [receipt gate](REPORT_RECEIPT_GATE.md). This package does not implement or qualify a provider.
 * `receipt_gate(manifest)` is the pinned report receipt gate's `check` function. It must verify actual native evidence and return its result; a synthetic callback is only a software test. Manifest request/profile file-byte hashes must match `Phase` pins before the gate is invoked.
+
+Version 0.1.0 has a manifest-aliasing defect and must not be adopted. Version 0.1.1 detaches the complete JSON manifest before phase-pin checks and again before calling the gate; checks the returned receipt/session identities against the byte-pinned receipt; rejects gate mutation; and gives the journal and caller independent completion copies with phase, request, profile and receipt bindings. The host still owns durable immutable storage and origin authentication.
 
 The host uses `Phase(job_id, 'generate' | 'source_review', request_sha256, profile_sha256)` and passes frozen request bytes to `ReportHostPort(...).run(phase, bytes)`. The port validates Request v2 and the exact byte hash, requires the host policy to return exactly `True`, reserves durably, makes at most one provider callback in that instance, then invokes receipt verification. A failure after reservation is marked uncertain and is not retried. The host journal is responsible for crash recovery and no duplicate dispatch across new instances. Successful receipt verification does not establish domain/source support, report quality or delivery eligibility. Review prerequisites and full Query post-response verification are host responsibilities.
 

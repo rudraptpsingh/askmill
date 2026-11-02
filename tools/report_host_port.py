@@ -5,9 +5,26 @@ all authority, source, capacity, durable reservation, dispatch and receipt gates
 """
 
 import hashlib
+import json
 from dataclasses import dataclass
 
 from askmill import Request
+from askmill.jsonio import MAX_RECEIPT_BYTES, loads, read_bytes
+
+
+def detached(value):
+    """Copy JSON-shaped host data without retaining shared mutable objects."""
+    return loads(json.dumps(value, allow_nan=False), MAX_RECEIPT_BYTES)
+
+
+def receipt_identity(ref):
+    if not isinstance(ref, dict) or set(ref) != {"path", "sha256"}:
+        raise ValueError("Invalid receipt reference")
+    raw = read_bytes(ref["path"], MAX_RECEIPT_BYTES)
+    if hashlib.sha256(raw).hexdigest() != ref["sha256"]:
+        raise ValueError("Receipt pin mismatch")
+    result = loads(raw, MAX_RECEIPT_BYTES)["content"]["result"]
+    return result["receipt_id"], result["session_id"]
 
 
 class PortRefusal(RuntimeError):
@@ -63,18 +80,38 @@ class ReportHostPort:
             raise PortRefusal("Host reservation unavailable")
         self._attempted.add(key)
         try:
-            manifest = self.provider.invoke_once(phase, request_bytes, reservation)
+            manifest = detached(
+                self.provider.invoke_once(phase, request_bytes, reservation)
+            )
             if (
                 manifest["request"]["sha256"] != phase.request_sha256
                 or manifest["profile"]["sha256"] != phase.profile_sha256
             ):
                 raise PortRefusal("Receipt gate manifest differs from phase pins")
-            checked = self.receipt_gate(manifest)
-            if checked.get("receipt_check") != "passed":
-                raise PortRefusal("Receipt gate refused")
-            # Complete means the provider evidence passed, not domain acceptance.
-            self.journal.complete(phase, reservation, checked)
-            return checked
+            expected_identity = receipt_identity(manifest["receipt"])
+            gate_manifest = detached(manifest)
+            checked = detached(self.receipt_gate(gate_manifest))
+            if gate_manifest != manifest:
+                raise PortRefusal("Receipt gate mutated its manifest")
+            if (
+                checked.get("receipt_check") != "passed"
+                or (checked.get("receipt_id"), checked.get("session_id"))
+                != expected_identity
+                or receipt_identity(manifest["receipt"]) != expected_identity
+            ):
+                raise PortRefusal("Receipt gate result differs from pinned receipt")
+            checked["phase_binding"] = {
+                "job_id": phase.job_id,
+                "phase": phase.name,
+                "request_sha256": phase.request_sha256,
+                "profile_sha256": phase.profile_sha256,
+                "receipt_sha256": manifest["receipt"]["sha256"],
+                "receipt_id": expected_identity[0],
+                "session_id": expected_identity[1],
+            }
+            # No caller receives a shared completion object.
+            self.journal.complete(phase, reservation, detached(checked))
+            return detached(checked)
         except BaseException:
             # Never retry: even a failed callback could follow actual dispatch.
             self.journal.uncertain(phase, reservation)

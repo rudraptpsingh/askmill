@@ -367,3 +367,15 @@ alpha20 generation/review probes without inference: 3721/4040/22481 input tokens
 for generation/one/eight paragraph review; 4096 output tokens reserved. On its
 16384-context candidate the eight-paragraph probe exceeds by 10193. Source-to-
 binary identity and live allocation are not attested; R1 remains closed.
+
+## Report host manifest aliasing correction
+
+Independent review found v0.1.0 can complete a phase with a different receipt
+if a shared provider manifest changes while the receipt gate is starting. Do
+not adopt that release. v0.1.1 detaches the manifest, binds receipt/session
+identity and phase pins across the gate, refuses gate mutation, and detaches
+journal and caller completion results. A synchronized cache-refresh regression
+uses two synthetic native receipts and the actual receipt gate. Together with
+existing receipt and orchestration controls, 27 tests passed with one retained
+real receipt; no inference. Independent re-review and Backend acceptance are
+pending. Historical release/tag and previous evidence are preserved.
