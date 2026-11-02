@@ -379,3 +379,15 @@ uses two synthetic native receipts and the actual receipt gate. Together with
 existing receipt and orchestration controls, 27 tests passed with one retained
 real receipt; no inference. Independent re-review and Backend acceptance are
 pending. Historical release/tag and previous evidence are preserved.
+
+## Embedding bridge candidate
+
+Added a separately packaged explicit registered-encoder CLI/SDK over Query's
+existing pinned EmbeddingGemma2 host; it does not change the global AskMill
+registry or inference runtime. It requires a separately authenticated host
+SOURCE_READ gate, current resource policy, pinned adapter/dependencies/profile,
+exact 1–32 text hashes, observed token counts and validated normalized float32
+rows, plus host cleanup confirmation. Nine synthetic/offline controls passed;
+no actual source, provider or model was used. The Query host sends an additional
+empty-input `/api/embed` cleanup request; its budget accounting remains pending.
+Actual B1 profile/grant/resource and isolated consumer acceptance are required.
