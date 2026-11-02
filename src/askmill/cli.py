@@ -31,6 +31,33 @@ def execute(args):
         return None
     if args.command == "list":
         return load_json(args.config)
+    if args.command == "embed":
+        from .embedding import FilePin, run_embedding, sha, verify_file
+
+        registry = load_json(args.config)
+        entry = registry["embedding_profiles"][args.profile]
+        ref = FilePin.model_validate(entry)
+        entry_sha = sha(
+            json.dumps(
+                entry,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode()
+        )
+        verify_file(ref)
+        profile_raw = read_bytes(ref.path)
+        request_raw = read_bytes(args.request)
+        return run_embedding(
+            profile_raw,
+            ref.sha256,
+            request_raw,
+            args.request_sha256,
+            args.output,
+            args.lease,
+            entry_sha,
+        )
     profile = load(args.config, args.profile)
     if args.command == "read-fields":
         from .pdf2data_fields import read_fields
@@ -99,6 +126,13 @@ def main():
     run.add_argument("--image", action="append", default=[])
     run.add_argument("--max-tokens", type=int, default=2048)
     run.add_argument("--timeout", type=float, default=180.0)
+    embed = sub.add_parser(
+        "embed", help="Run one explicitly registered embedding batch"
+    )
+    embed.add_argument("--profile", required=True)
+    embed.add_argument("--request", required=True)
+    embed.add_argument("--request-sha256", required=True)
+    embed.add_argument("--output", required=True)
     batch = sub.add_parser("batch")
     batch.add_argument("--profile", required=True)
     batch.add_argument("--request", required=True, help="JSON Batch contract file")

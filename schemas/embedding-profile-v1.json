@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "FilePin": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FilePin",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capabilities": {
+      "default": [
+        "embedding"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Capabilities",
+      "type": "array"
+    },
+    "context_gate": {
+      "$ref": "#/$defs/FilePin"
+    },
+    "context_tokens": {
+      "maximum": 131072,
+      "minimum": 1,
+      "title": "Context Tokens",
+      "type": "integer"
+    },
+    "dimensions": {
+      "maximum": 65536,
+      "minimum": 1,
+      "title": "Dimensions",
+      "type": "integer"
+    },
+    "lease_paths": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Lease Paths",
+      "type": "array"
+    },
+    "max_owned_rss_bytes": {
+      "minimum": 1,
+      "title": "Max Owned Rss Bytes",
+      "type": "integer"
+    },
+    "min_available_bytes": {
+      "minimum": 1,
+      "title": "Min Available Bytes",
+      "type": "integer"
+    },
+    "model": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "model_manifest": {
+      "$ref": "#/$defs/FilePin"
+    },
+    "model_revision": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Model Revision",
+      "type": "string"
+    },
+    "model_store": {
+      "title": "Model Store",
+      "type": "string"
+    },
+    "provider": {
+      "default": "ollama-owned",
+      "title": "Provider",
+      "type": "string"
+    },
+    "provider_binary": {
+      "$ref": "#/$defs/FilePin"
+    },
+    "provider_version": {
+      "minLength": 1,
+      "title": "Provider Version",
+      "type": "string"
+    },
+    "psutil_version": {
+      "minLength": 1,
+      "title": "Psutil Version",
+      "type": "string"
+    },
+    "runtime_files": {
+      "items": {
+        "$ref": "#/$defs/FilePin"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Runtime Files",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "askmill.embedding-profile.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "timeout_seconds": {
+      "maximum": 3600,
+      "minimum": 1,
+      "title": "Timeout Seconds",
+      "type": "integer"
+    },
+    "tokenizer": {
+      "$ref": "#/$defs/FilePin"
+    },
+    "tokenizers_version": {
+      "minLength": 1,
+      "title": "Tokenizers Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "model",
+    "model_revision",
+    "dimensions",
+    "context_tokens",
+    "tokenizer",
+    "tokenizers_version",
+    "psutil_version",
+    "model_manifest",
+    "model_store",
+    "provider_binary",
+    "runtime_files",
+    "provider_version",
+    "context_gate",
+    "lease_paths",
+    "min_available_bytes",
+    "max_owned_rss_bytes",
+    "timeout_seconds"
+  ],
+  "title": "EmbeddingProfile",
+  "type": "object"
+}

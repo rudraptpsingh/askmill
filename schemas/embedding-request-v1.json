@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "EmbeddingItem": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 64000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "sha256"
+      ],
+      "title": "EmbeddingItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Batch Id",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/EmbeddingItem"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Items",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "askmill.embedding-batch.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Scope Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "batch_id",
+    "scope_sha256",
+    "items"
+  ],
+  "title": "EmbeddingRequest",
+  "type": "object"
+}

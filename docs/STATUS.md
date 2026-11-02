@@ -411,3 +411,29 @@ independently reproduced offline. Existing bridge v0.1.1's historical Query
 resource guard does not admit the new B1 source or separate phase plan. The new
 B1 guard, live source checks, typed execution integration and Query consumer
 acceptance remain open; no actual encoding was attempted.
+
+## Generic embedding runtime a7 candidate
+
+AskMill now has an opt-in registered `embedding_profiles` entry and `embed`
+CLI/SDK path, independently pinned from existing generation profiles. It owns
+an explicitly selected local Ollama service, model/tokenizer/runtime pin checks,
+nonblocking shared leases, input/token/Float32 validation, resource monitoring,
+settlement and quarantine; application-specific scope and a durable one-use
+budget are authenticated by host-owned gate callbacks before and after work.
+A new model-space profile is required; no Query source guard, business schema,
+old grant or default was copied. Offline synthetic controls cover registration,
+one data plus cleanup, token/identity failures, revocation and uncertainty. No
+real embedding, new model, provider startup or consumer acceptance has occurred.
+
+The a7 candidate wheel was built offline and installed in a separate environment
+with tokenizers 0.22.2 and psutil 7.2.2. Its installed embedding controls passed
+11 tests; the combined affected source suites passed 33 tests before the final
+additional tokenizer-version refusal control. The cached
+EmbeddingGemma tokenizer was read without loading weights and produced 5 tokens
+for a synthetic software string; its SHA matched the frozen tokenizer metadata.
+The new runtime registers a new provider identity; it does not claim the old
+Query implementation/profile hash. An attempt writes its own quarantine markers
+before provider startup, inherits leases into the owned provider and removes its
+markers only after confirmed owned cleanup; crash/reconciliation and live host
+callback provenance still require independent review and consumer qualification.
+No actual source encoding, provider process or model load occurred in these tests.
