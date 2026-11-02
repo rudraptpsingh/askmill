@@ -303,3 +303,22 @@ helper invocations. Old requests/reports/global profile and launch configuration
 hashes remain unchanged. Twenty affected-stage local software controls pass,
 including the native helper's pre-load tensor-container refusal; pure Python
 lint/format and native Go/C++ compilation pass. Accuracy cases added: zero.
+
+## P0 bounded-model tracker alignment, 2 November 2026
+
+Recorded producer-side alignment in TRACKER_ALIGNMENT.md after reading the
+hash-pinned programme/research and the golden tracker ledger README/generator.
+The existing run_request_v1 wrapper remains closed; authority/capacity/review
+and ledger binding live outside the tool arguments. The proposed document/run
+mapping separates extraction/model time, observed/reserved tokens, cache reuse,
+transport completion and caller-owned acceptance/rejection. Original-document
+and multi-document deduplication remain explicit.
+
+A concrete Map-owned interface decision remains: current document-run v1 has
+no typed AskMill token/review/history stage, and its fixed pipeline drops that
+stage from generated tracker output. No unagreed ledger row or adapter is
+written. P0 is contract alignment only, not coverage/accuracy progress. No new
+model run, download, default/profile/lease change, prior receipt edit, runtime
+schema change, CI rerun or release is performed. P3/P4 tasks stay gated. Local
+qualification checks document links and the unchanged closed MCP/schema pins;
+consumer/Map acceptance of the proposed extension remains pending.

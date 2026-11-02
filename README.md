@@ -4,6 +4,11 @@ Run local text and vision models from your code, terminal, or coding assistant.
 
 **Early alpha for macOS/Linux (Python 3.10+).** A small shared runner with a Python API, JSON CLI and optional stdio MCP server. Use Ollama for local text/images or an existing MLX-VLM environment for Apple Silicon vision. Model weights are installed separately.
 
+Current inference prerelease: **v0.1.0a6**. The separate offline qualification
+tools are tagged **capacity-preflight-v0.1.0**. Consumers pin and qualify their
+installed versions explicitly; a newer checkout does not upgrade an existing
+launcher, model profile or frozen job.
+
 ## Install and run
 
 From a checkout:
