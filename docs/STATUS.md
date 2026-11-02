@@ -342,3 +342,15 @@ zero. Local batch registration succeeds; owner/golden registration remains its
 own receipt. No new inference, source parsing, defaults/global consumer repin,
 CI run or accuracy case is introduced. P3/P4 remain gated. Tool-only release
 and installed adapter qualification are required before consumer adoption.
+
+## Offline report receipt boundary
+
+Added a separately packaged `report_receipt_gate.py` for text-only Ollama v2
+retained report-phase receipts. It checks native input/settlement bindings and
+adds raw assistant, stop, tool-call, stdout and expected lease-count gates;
+source completeness, fit, trusted origin and domain acceptance remain host
+gates. With an existing private real receipt and explicitly mutated offline
+controls, `tests/test_report_receipt_gate.py tests/test_json_gates.py` passed
+17 tests; no new inference or provider/service operation was performed. The
+consumer must pin its installed artifact and separately establish source, fit,
+authorization and actual report execution; this does not qualify R1.
