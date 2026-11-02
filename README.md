@@ -8,6 +8,9 @@ Current inference prerelease: **v0.1.0a6**. The separate offline qualification
 tools are tagged **capacity-preflight-v0.1.0**. Consumers pin and qualify their
 installed versions explicitly; a newer checkout does not upgrade an existing
 launcher, model profile or frozen job.
+The separate **tracker-reporting-v0.1.0** adapter projects retained source-bound
+invocations into Map intake 1.1 without inference; see
+[reporting and installed-consumer gates](docs/TRACKER_REPORTING.md).
 
 ## Install and run
 

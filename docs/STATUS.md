@@ -322,3 +322,23 @@ model run, download, default/profile/lease change, prior receipt edit, runtime
 schema change, CI rerun or release is performed. P3/P4 tasks stay gated. Local
 qualification checks document links and the unchanged closed MCP/schema pins;
 consumer/Map acceptance of the proposed extension remains pending.
+
+## P0 retained-invocation reporter qualification
+
+Map 0.37 intake 1.1 resolves the initial stage/history interface gap. Added a
+separately versioned CPU-only reporting CLI because native AskMill receipts are
+not document-run intake records and cannot be submitted as metadata-only rows.
+The emitter reopens original subject proofs, exact frozen prompt JSON source
+bindings, native envelope/cache identity, observed counters, replay and caller
+review evidence. It preserves null unknowns and rejects a reader-context PDF
+absent from the actual model input. It never initializes Session or leases.
+
+Twenty focused retained-source/adversarial software controls pass, including
+installed Map multi-PDF invocation dedup/conflict checks, replay counter/cleanup
+controls and receipt-bound caller review. Real retained complete and failed-CLI
+records validate through the downloaded Map 0.37 wheel/final requirements;
+local append inserts two events for one original and identical replay inserts
+zero. Local batch registration succeeds; owner/golden registration remains its
+own receipt. No new inference, source parsing, defaults/global consumer repin,
+CI run or accuracy case is introduced. P3/P4 remain gated. Tool-only release
+and installed adapter qualification are required before consumer adoption.

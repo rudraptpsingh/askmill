@@ -1,6 +1,9 @@
 # Bounded-model tracker alignment (P0)
 
-Status: producer-side P0 contract proposal. This document changes no runtime,
+Status: the initial producer proposal below is retained for its rationale. Map
+0.37 intake 1.1 now implements the model-stage/history boundary; use the
+[versioned retained-receipt reporter](TRACKER_REPORTING.md) for the qualified
+projection and explicit installed-package/registration gates. This document changes no runtime,
 released schema, profile, default model, lease, receipt or historical result.
 Map owns the document ledger and coverage/accuracy reporting; the consuming
 task owner owns source acceptance and review. No model execution, historical
@@ -60,10 +63,10 @@ Map/Central's accepted writer merges run references into the existing document
 record without overwriting other tools' stages or prior runs. AskMill does not
 write another owner's worktree or create a parallel coverage dashboard.
 
-## Proposed Map extension — acceptance required
+## Initial proposed Map extension — now represented by intake 1.1
 
-The inspected document-run v1 README has no model-stage/token/review contract;
-the generator uses a fixed pipeline that omits an `askmill` stage. Adding
+At the initial pinned inspection, the document-run v1 README had no model-stage/token/review contract;
+the generator used a fixed pipeline that omitted an `askmill` stage. Adding
 unagreed fields would not make them appear in tracker output. Map must accept
 an additive model-stage/history projection (or provide an equivalent explicit
 schema) before any adapter writes it. The proposed location is
@@ -84,7 +87,7 @@ proposed fields, not additions to AskMill's released Request/Result schemas:
 | `runs[].review.accepted_candidates`, `rejected_candidates`, `unreviewed_candidates` | Counts only when established by a bound review; no inference from model agreement, completion or schema validity |
 | `runs[].holds`, `settlement` | Existing source/client/current-law holds and attempt/owned-service cleanup; no implied clearance |
 
-Required Map decision: accept the stage/history fields and renderer projection,
+The initial required Map decision was to accept the stage/history fields and renderer projection,
 including null/unknowns and multi-document deduplication, or return its exact
 alternative. The ledger currently documents stage receipts as paths; retaining
 SHA-256 pins alongside them needs agreement too. No adapter or stage rendering
@@ -122,7 +125,9 @@ or association. Query alone reports an accepted semantic answer. Field acceptanc
 and gold checks remain Map/reviewer-owned; model calls, software tests, contract
 alignment and releases do not increase document coverage or accuracy.
 Software controls and historical development cases remain excluded from real
-independent accuracy. P0 emits no document-run row and changes no tracker total.
+independent accuracy. The initial alignment emitted no document-run row. The later explicitly authorized
+reporting qualification reuses retained receipts; it is not a new model run or
+field/answer accuracy result. Only Map reports registered tracker totals.
 
 The current released interfaces remain described in [MCP.md](MCP.md),
 [EXECUTION_MODES.md](EXECUTION_MODES.md), [CAPACITY_PREFLIGHT.md](CAPACITY_PREFLIGHT.md)

@@ -81,8 +81,9 @@ Discovery/admission guards and source-only execution have separate scopes.
 Use [the execution-mode guidance](EXECUTION_MODES.md) to distinguish zero model
 dispatch from runner initialization, receipt replay and source/domain approval.
 
-The [P0 tracker alignment proposal](TRACKER_ALIGNMENT.md) keeps ledger,
-capacity/authority and caller-review metadata outside this closed argument
-object. Its Map-owned stage/history projection is not implemented or accepted
-by this MCP release. Existing pinned consumers are not silently upgraded;
-new full-request consumers must explicitly adopt the a6 wheel/SDK/schema pins.
+The [P0 tracker alignment](TRACKER_ALIGNMENT.md) keeps ledger, capacity/authority
+and caller-review metadata outside this closed argument object. The separately
+versioned [retained-invocation reporter](TRACKER_REPORTING.md) targets Map 0.37
+intake 1.1; it does not change this MCP runtime or dispatch a model. Existing
+pinned consumers are not silently upgraded; new full-request consumers must
+explicitly adopt the a6 wheel/SDK/schema pins.
