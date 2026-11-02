@@ -107,3 +107,68 @@ refusal, manifest pin mismatch and wheel checksum mismatch. These add no model
 or source accuracy cases. Actual consumer requests and guard evidence stay
 private, including prior failed descriptors; a new descriptor never replaces
 its frozen predecessor.
+
+## Qwen3.5 dependency investigation
+
+A declared renderer is not the same as the stored template text. In Ollama
+v0.40.13, the Qwen3.5 selection uses its built-in renderer, including role
+framing and an empty thinking block when thinking is disabled. Merely counting
+the prompt or rendering the 13-byte passthrough template would miss that path.
+See the pinned [renderer selection](https://github.com/ollama/ollama/blob/04088e7c9d41cba5d33bafbf788d87a465c79d5b/model/renderers/renderer.go)
+and [Qwen3.5 renderer](https://github.com/ollama/ollama/blob/04088e7c9d41cba5d33bafbf788d87a465c79d5b/model/renderers/qwen35.go).
+These sources are a candidate implementation for qualification, not attestation
+that a local binary or active service matches the tag.
+
+A provider's render-only switch is not automatically a no-model preflight.
+The same version's chat handler schedules a runner before its debug-render
+return. The provider may also prepend model-defined messages/system text and
+clamp context to runner capacity. Calling that route would violate the offline
+boundary; no such call is used here. See the pinned
+[chat handler and message preparation](https://github.com/ollama/ollama/blob/04088e7c9d41cba5d33bafbf788d87a465c79d5b/server/routes.go)
+and [render/tokenize path](https://github.com/ollama/ollama/blob/04088e7c9d41cba5d33bafbf788d87a465c79d5b/server/prompt.go).
+
+The publisher provides separate [Qwen3.5 tokenizer assets](https://huggingface.co/Qwen/Qwen3.5-9B/tree/21eca8a083a2121a92fba681f4a7c72cf20ff1a7),
+but their existence does not prove correspondence with a selected Ollama
+container's vocabulary, merge ranks, special-token IDs, pretokenization or
+BOS/EOS behavior. A cached Qwen3-VL tokenizer is a different model's asset.
+Do not substitute either one on the strength of a family name. A bytes-based
+upper bound would also need proof of tokenizer normalization/expansion and
+complete framing; no such proof is currently available. An upper bound above
+the available input budget would not prove overflow, either.
+
+The utility reports machine-readable `tokenization.missing_dependencies` and
+`capacity.missing_dependencies`; it does not accept unqualified count overrides.
+The precise missing pieces are revision-bound tokenizer metadata and its
+implementation, complete provider-renderer/build identity and evidence for
+native context/allocation. Installing a generic tokenizer library alone does
+not satisfy them.
+
+A safe **new plan**, separate from a frozen request/runtime, has these phases:
+
+| Phase | Goal | Required outcome |
+|---|---|---|
+| 1. Obtain metadata only | Acquire a trusted tokenizer sidecar tied to the exact model container digest, plus context/config metadata | Versioned asset hashes and vocabulary/merge/special-token/BOS/EOS equivalence evidence; no family-name substitution |
+| 2. Qualify rendering | Bind the provider binary/build and renderer source; establish model system/default messages and exact thinking/framing behavior | Complete rendered request bytes with implementation and input pins, without starting a runner |
+| 3. Count offline | Use a separately pinned CPU tokenizer implementation with network disabled and an allowlist of metadata files | Exact token count or a proved conservative bound, with weight/lease/provider access refused |
+| 4. Gate capacity | Combine the count/bound, native limit, output reservation and allocated-context evidence | Explicit fit/overflow/unknown; no clipping, default change or dispatch authority |
+| 5. Publish and adopt | Release the qualified helper and have each consumer accept its exact version | Immutable artifacts and caller-owned acceptance; existing execution/profile pins unchanged until separately adopted |
+
+If the only tokenizer copy is embedded in a weight container, obtaining an
+export requires a separately scoped packaging/extraction plan. This preflight
+does not open that container, even to inspect its header. A trusted existing
+export with equivalence evidence is preferable within this boundary. A later
+runtime parity check involving a provider/runner would also require its own
+plan and authorization; it is not an offline tokenizer test.
+
+The retained schema failure teaches a different lesson: canonical caller
+validation may include `pattern` constraints that the provider grammar subset
+cannot accept. Keep the canonical schema and its postvalidation separate from
+an explicitly prepared compatible provider schema. The utility must refuse
+unsupported grammar, retain the frozen input, and leave that repair to the
+caller. Removing duplicated inline schema text can reduce bytes but does not
+qualify token capacity or relax caller semantics.
+
+The dependency diagnostics are an additive report-v1 extension distributed in
+a tool-only release. They do not introduce token counting or change the a6
+inference package. Consumers must accept the new helper/artifact pin explicitly;
+a new report does not replace an older frozen report or execution descriptor.

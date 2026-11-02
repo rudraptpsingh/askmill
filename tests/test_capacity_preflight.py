@@ -100,3 +100,68 @@ def test_wrong_wheel_hash_refused_before_import_identity_check(tmp_path):
     wheel.write_bytes(b"not a qualified wheel")
     with pytest.raises(ValueError, match="checksum mismatch"):
         preflight.qualified_install(wheel, "c" * 64)
+
+
+def test_pattern_grammar_refusal_preserves_original_schema(tmp_path):
+    from askmill.structured import schema_digest
+
+    body = json.loads(
+        (ROOT / "examples/structured-source-id/request.json").read_bytes()
+    )
+    document = body["response_schema"]["document"]
+    document["properties"]["source_id"]["pattern"] = "^[A-Za-z0-9_.:-]+$"
+    body["response_schema"]["sha256"] = schema_digest(document)
+    request = tmp_path / "unsupported-pattern.json"
+    request.write_text(json.dumps(body))
+    before = request.read_bytes()
+    report = preflight.preflight(
+        ROOT / "examples/profile.template.json",
+        "dev-text",
+        request,
+        {"test_control": True},
+    )
+    assert report["status"] == "request_rejected"
+    assert any("pattern" in item["message"] for item in report["request"]["errors"])
+    assert report["tokenization"]["exact_input_tokens"] is None
+    assert request.read_bytes() == before
+
+
+def test_smaller_prompt_with_declared_budget_cannot_satisfy_missing_tokenizer(tmp_path):
+    registry = json.loads((ROOT / "examples/profile.template.json").read_bytes())
+    registry["profiles"]["dev-text"].update(
+        {
+            "schema_version": "askmill.profile.v2",
+            "generation": {"context_tokens": 8192, "thinking": False},
+        }
+    )
+    config = tmp_path / "profile.json"
+    config.write_text(json.dumps(registry))
+    body = json.loads(
+        (ROOT / "examples/structured-source-id/request.json").read_bytes()
+    )
+    body["max_tokens"] = 2048
+    prompt = body["prompt"]
+    reports = []
+    for index, text in enumerate((prompt, prompt[: len(prompt) // 2])):
+        body["prompt"] = text
+        request = tmp_path / (str(index) + ".json")
+        request.write_text(json.dumps(body))
+        reports.append(
+            preflight.preflight(config, "dev-text", request, {"test_control": True})
+        )
+    assert (
+        reports[1]["request"]["prompt_utf8_bytes"]
+        < reports[0]["request"]["prompt_utf8_bytes"]
+    )
+    for report in reports:
+        assert report["request"]["schema_gate"] == "passed"
+        assert report["capacity"]["input_budget_if_profile_context_is_honored"] == 6144
+        assert report["capacity"]["state"] == "unknown"
+        assert report["tokenization"]["conservative_upper_bound"] is None
+        assert (
+            report["tokenization"]["missing_dependencies"]["revision_bound_tokenizer"][
+                "state"
+            ]
+            == "unqualified"
+        )
+        assert report["boundaries"]["execution_authorized"] is False

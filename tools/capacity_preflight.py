@@ -252,6 +252,25 @@ def preflight(
             "conservative_upper_bound": None,
             "justification": unsupported,
             "images_or_tokenizer_fallback_used": False,
+            "missing_dependencies": {
+                "revision_bound_tokenizer": {
+                    "state": "unqualified",
+                    "required": [
+                        "Vocabulary, merge ranks and added/special-token IDs bound to the selected model revision",
+                        "Pinned tokenizer implementation with normalization, pretokenization and BOS/EOS behavior",
+                    ],
+                },
+                "complete_provider_rendering": {
+                    "state": "unqualified",
+                    "declared_renderer": metadata.get("declared_renderer")
+                    if metadata
+                    else None,
+                    "required": [
+                        "Provider build and full renderer/template implementation bound to that build",
+                        "System/default messages, thinking settings and special-token framing for this exact request",
+                    ],
+                },
+            },
         },
         "capacity": {
             "state": "unknown",
@@ -265,6 +284,10 @@ def preflight(
                 "exceeds_declared_context" if budget < 0 else "within_declared_context"
             ),
             "allocation_or_complete_rendered_input_qualified": False,
+            "missing_dependencies": [
+                "Qualified complete rendered-input token count or conservative bound",
+                "Native context limit and evidence the selected runtime honors the declared allocation and output reserve",
+            ],
         },
         "boundaries": {
             "request_or_profile_changed": False,

@@ -249,3 +249,25 @@ unchanged. The older unsupported-pattern descriptor and its refusal evidence
 remain frozen. Caller-owned post-validation, execution authorization, source
 semantics, identity/scope, performance and capacity gates remain independent.
 This repeated inspection adds no source/document accuracy case.
+
+## Capacity investigation follow-up, 2 November 2026
+
+Reviewed the retained unsupported-pattern refusal and the repaired real request
+before changing the helper. Public source research identified the built-in
+Qwen3.5 renderer, including non-thinking framing, and a render-only provider
+route that still schedules a runner. That route was not called. Cached
+Qwen3-VL assets cannot qualify the selected Qwen3.5 container; no revision-bound
+standalone tokenizer export/equivalence evidence is present. Tokenization and
+context fit remain unknown, with no numerical bound invented.
+
+The repository helper now identifies missing tokenizer/rendering and capacity
+dependencies in its report. Added two affected-stage software regressions:
+unsupported pattern grammar preserves its input, and fewer prompt bytes with a
+declared output budget still cannot produce a capacity pass. Ten focused offline
+controls and lint/format pass. The exact old rejected request and repaired real
+request are rechecked under weight/network/lease guards in private evidence;
+no new source/document accuracy cases or inference are introduced. Canonical
+caller postvalidation and existing execution/profile pins remain unchanged.
+The diagnostics are distributed separately as a tool-only immutable release;
+a6 inference behavior and the global launcher stay unchanged. Consumer adoption
+of the helper remains explicit and pending its owner.
