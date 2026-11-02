@@ -398,3 +398,16 @@ requires exactly two successful `/api/embed` entries in the fresh owned-server
 log and pins the log; the native receipt separately records one model data call.
 A synthetic extra-request refusal control brings the offline suite to ten tests.
 Host-owned source authorization and acceptance remain pending; no encoding ran.
+
+## Query embedding-batch typed contract inspection
+
+Added a non-dispatching inspector for Query's exact pinned request/response
+schemas, kept external because Query declares its package UNLICENSED. It checks
+schema, file-byte versus canonical model-profile pins, scoped row identity,
+float32 vector hash/normalization, and four receipt file hashes while leaving
+source authority and receipt origins unverified. Six synthetic controls passed
+with the consumer's pinned schemas; actual model-profile canonical digests were
+independently reproduced offline. Existing bridge v0.1.1's historical Query
+resource guard does not admit the new B1 source or separate phase plan. The new
+B1 guard, live source checks, typed execution integration and Query consumer
+acceptance remain open; no actual encoding was attempted.
