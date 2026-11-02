@@ -271,3 +271,35 @@ caller postvalidation and existing execution/profile pins remain unchanged.
 The diagnostics are distributed separately as a tool-only immutable release;
 a6 inference behavior and the global launcher stay unchanged. Consumer adoption
 of the helper remains explicit and pending its owner.
+
+## Separate metadata and qualified-upstream static stage, 2 November 2026
+
+The expressly authorized next stage preserves the original no-container-read
+reports and accounts full existing-container hash I/O separately. A bounded
+GGUF scanner exports unchanged metadata fields into a zero-tensor sidecar;
+the maintained pinned llama.cpp parser/tokenizer loads only that vocabulary,
+with GPU backends disabled and no context or inference. The native CPU driver
+was compiled after detecting an incompatible pre-existing x86-only library.
+That library/service was not changed. Tokenizer and renderer setup fetch only
+public code/toolchains/runtime assets, never weights or consumer data uploads.
+
+A compiled driver now invokes the pinned upstream Ollama renderer directly.
+The independently downloaded official provider executable matches the installed
+binary byte-for-byte and also contains the dirty marker; it is not evidence of
+a local modification. A clean source build was completed before this identity
+was resolved, then retained unused. The accepted plan direction uses the verified
+publisher executable and qualified-upstream static evidence; no functional
+renderer difference has been demonstrated and source-to-binary correspondence
+remains explicitly unproved.
+
+The private candidate keeps the exact model weights and source/prompt/schema
+contents, while explicitly proposing a new named profile/context/output budget.
+The old declared-budget candidate overflows for the upstream renderer; the new
+candidate fits its declared static limit. Actual provider prompt_eval_count,
+runtime allocation, finish/completeness and settlement remain fresh-execution
+gates. No provider has been started and no execution is authorized. A macOS OS
+sandbox denies network/original-container/lease access during the three CPU
+helper invocations. Old requests/reports/global profile and launch configuration
+hashes remain unchanged. Twenty affected-stage local software controls pass,
+including the native helper's pre-load tensor-container refusal; pure Python
+lint/format and native Go/C++ compilation pass. Accuracy cases added: zero.

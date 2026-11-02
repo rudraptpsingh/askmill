@@ -1,40 +1,40 @@
 # Capacity preflight v0.1.0 (tool-only)
 
-This is the first standalone release of the repository capacity evidence
-helper. It is separate from the AskMill inference package, which remains at
-v0.1.0a6. No global launcher, provider, model, context or consumer execution pin
-is changed by this release.
+This first standalone tool release contains the no-container-read capacity
+reporter, a separately authorized bounded GGUF metadata exporter, a maintained
+CPU vocabulary-only tokenizer driver, an upstream Ollama renderer driver and
+a pinned-plan static checker. The inference package remains v0.1.0a6; no global
+launcher, provider service or consumer execution/default pin is changed.
 
-The helper records strict request/schema admission and offline profile/manifest
-metadata, keeps unqualified tokenization/context fit unknown, and now identifies
-missing dependencies explicitly. It does not contain an offline tokenizer or
-an implemented capacity-pass path. The evidence contract remains
-`askmill.capacity-preflight.v1`, with additive missing-dependency fields.
+The original report remains `askmill.capacity-preflight.v1` and keeps capacity
+unknown when no tokenizer/rendering qualification exists. Separate stage
+contracts are `askmill.gguf-metadata-export.v1`,
+`askmill.offline-toolchain-plan.v1` and
+`askmill.qwen35-static-qualification.v1`. Qualified upstream static fit and
+actual runtime allocation/finish/settlement are distinct gates.
 
-Run the extracted `tools/capacity_preflight.py` with a separately installed,
-qualified AskMill v0.1.0a6 interpreter and the original wheel. The qualified a6
-wheel SHA-256 is:
+Use a separately installed a6 interpreter and the original qualified wheel:
 
 ```
 639a50e1096f7a8160e4b805e83e4ec48feb87d95c7675a5e6041a85260b758b
 ```
 
-See [usage and dependency qualification plan](../CAPACITY_PREFLIGHT.md).
-The archive contains the helper, guidance, affected software controls, existing
-public fixture, license and notices. Private consumer inputs, reports and model
-assets are excluded. Verify the release archive against its checksums and pin
-the helper file hash independently.
+See [no-container-read usage](../CAPACITY_PREFLIGHT.md) and the
+[separate static qualification stages and build recipe](../OFFLINE_QWEN_QUALIFICATION.md).
+Source archives include our helpers, documentation, boundary tests, existing
+public software fixture, license and notices. Toolchains, third-party compiled
+runtimes, model assets and private consumer inputs/receipts are excluded.
 
-Validation: ten focused offline software controls, lint/format, and two separate
-retained real-request admission checks against the immutable a6 validator.
-Audit guards observe no network, runner import, lease access, weight read or
-model inference during those request checks; frozen inputs and old evidence
-stay unchanged. The invalid provider-pattern descriptor is still refused; the
-compatible descriptor passes schema with capacity unknown. These checks add
-zero model/source/document accuracy cases. Public CI is separately linked on
-the owning commit.
+Validation includes 20 focused local software controls (one requires the
+separately built CPU helper), native driver compilation, an actual zero-tensor
+GGUF vocabulary parse, and a real candidate rendered/count-qualified with the
+maintained upstream implementations. The original container was fully
+stream-hashed only in the expressly authorized export stage; later counts
+were sandboxed against network/original-container/lease access. Frozen
+requests, previous reports and the global launch/profile configuration stayed
+unchanged. These checks add zero source/document/model accuracy cases.
 
-Consumer acceptance remains pending. A caller must explicitly accept this
-helper artifact and its additive report fields. That acceptance would not
-approve tokenizer equivalence, context fit, inference dispatch, canonical
-postvalidation, source semantics or a different execution runtime.
+Consumer adoption is pending explicit acceptance of the exact helper/runtime/
+profile/request/count pins. No inference was authorized or performed. An
+accepted new plan still needs a separately authorized bounded execution and
+caller-owned canonical/source/output/performance/settlement gates.

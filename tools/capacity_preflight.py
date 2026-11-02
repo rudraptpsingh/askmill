@@ -274,6 +274,8 @@ def preflight(
         },
         "capacity": {
             "state": "unknown",
+            "static_fit_state": "unknown",
+            "runtime_allocation_attestation": "not_performed",
             "declared_profile_context_tokens": selected_context,
             "native_model_context_limit": None,
             "reserved_output_tokens": output_reserve,
@@ -286,7 +288,7 @@ def preflight(
             "allocation_or_complete_rendered_input_qualified": False,
             "missing_dependencies": [
                 "Qualified complete rendered-input token count or conservative bound",
-                "Native context limit and evidence the selected runtime honors the declared allocation and output reserve",
+                "Native model context limit for static fit; runtime allocation is a separate later gate",
             ],
         },
         "boundaries": {

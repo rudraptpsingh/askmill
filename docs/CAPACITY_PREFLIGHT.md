@@ -67,7 +67,9 @@ The output contract identifier is `askmill.capacity-preflight.v1`:
 
 Prompt byte or codepoint counts are **not token counts or safe token bounds**.
 No qualified offline tokenizer and complete provider renderer are implemented
-here. A template-layer hash and an embedded tokenizer container digest do not
+in this no-container-read utility. The separately authorized
+[metadata-export/static qualification stage](OFFLINE_QWEN_QUALIFICATION.md)
+has its own artifacts and file-I/O boundaries. A template-layer hash and an embedded tokenizer container digest do not
 establish complete rendering/tokenization identity. Native context limits and
 actual live allocation remain unknown. This utility therefore cannot report fit.
 
@@ -133,7 +135,7 @@ container's vocabulary, merge ranks, special-token IDs, pretokenization or
 BOS/EOS behavior. A cached Qwen3-VL tokenizer is a different model's asset.
 Do not substitute either one on the strength of a family name. A bytes-based
 upper bound would also need proof of tokenizer normalization/expansion and
-complete framing; no such proof is currently available. An upper bound above
+complete framing; this no-container-read stage has no such proof. An upper bound above
 the available input budget would not prove overflow, either.
 
 The utility reports machine-readable `tokenization.missing_dependencies` and
@@ -150,7 +152,7 @@ A safe **new plan**, separate from a frozen request/runtime, has these phases:
 | 1. Obtain metadata only | Acquire a trusted tokenizer sidecar tied to the exact model container digest, plus context/config metadata | Versioned asset hashes and vocabulary/merge/special-token/BOS/EOS equivalence evidence; no family-name substitution |
 | 2. Qualify rendering | Bind the provider binary/build and renderer source; establish model system/default messages and exact thinking/framing behavior | Complete rendered request bytes with implementation and input pins, without starting a runner |
 | 3. Count offline | Use a separately pinned CPU tokenizer implementation with network disabled and an allowlist of metadata files | Exact token count or a proved conservative bound, with weight/lease/provider access refused |
-| 4. Gate capacity | Combine the count/bound, native limit, output reservation and allocated-context evidence | Explicit fit/overflow/unknown; no clipping, default change or dispatch authority |
+| 4. Gate static capacity | Combine the count/bound, native limit and declared context/output reservation | Explicit static fit/overflow/unknown; runtime allocation remains a later distinct gate |
 | 5. Publish and adopt | Release the qualified helper and have each consumer accept its exact version | Immutable artifacts and caller-owned acceptance; existing execution/profile pins unchanged until separately adopted |
 
 If the only tokenizer copy is embedded in a weight container, obtaining an
@@ -169,6 +171,7 @@ caller. Removing duplicated inline schema text can reduce bytes but does not
 qualify token capacity or relax caller semantics.
 
 The dependency diagnostics are an additive report-v1 extension distributed in
-a tool-only release. They do not introduce token counting or change the a6
-inference package. Consumers must accept the new helper/artifact pin explicitly;
+a tool-only release. This no-container-read utility does not introduce token counting
+or change the a6 inference package. The separate qualification tools are described
+in their own linked workflow. Consumers must accept the new helper/artifact pin explicitly;
 a new report does not replace an older frozen report or execution descriptor.

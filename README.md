@@ -67,6 +67,8 @@ initializes the runner. Source-only consumers keep their AI runner absent.
 For request/profile evidence without starting a runner, use the repository-only
 [offline capacity preflight](docs/CAPACITY_PREFLIGHT.md). Tokenization and fit
 remain unknown until independently qualified.
+The separately authorized [Qwen metadata/static qualification](docs/OFFLINE_QWEN_QUALIFICATION.md)
+uses a zero-tensor sidecar and pinned CPU helpers; static evidence does not authorize inference.
 
 ## PDF2Data
 
