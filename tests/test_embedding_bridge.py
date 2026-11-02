@@ -34,6 +34,7 @@ def encoder_session(config, runtime_directory, planned_inputs=None):
         return matrix,report
     yield profile,encode
     (out/'cleanup.json').write_text(json.dumps({'owned_server_stopped':True,'unload_verified':True}))
+    (out/'owned-server.log').write_text('[GIN] software | 200 | POST     "/api/embed"\\n[GIN] software | 200 | POST     "/api/embed"\\n')
 """
 
 
@@ -120,6 +121,8 @@ class Controls(unittest.TestCase):
             self.registry, "fixture", self.request, self.root / "out"
         )
         self.assertEqual(result["provider_model_calls"], 1)
+        self.assertEqual(result["cleanup_requests"], 1)
+        self.assertEqual(result["total_embed_endpoint_requests"], 2)
         self.assertEqual(result["provider_profile_sha256"], self.profile["sha256"])
         self.assertEqual(
             result["inputs"][0]["sha256"], self.request["inputs"][0]["sha256"]
@@ -181,6 +184,18 @@ class Controls(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source-read"):
             bridge.run_batch(self.registry, "fixture", self.request, self.root / "out")
         self.assertFalse((self.root / "out").exists())
+
+    def test_extra_embed_endpoint_request_refused(self):
+        changed = FAKE_ADAPTER.replace(
+            "(out/'owned-server.log').write_text(",
+            "(out/'owned-server.log').write_text('[GIN] software | 200 | POST     \"/api/embed\"\\n' + ",
+        )
+        self.registry["profiles"]["fixture"]["adapter"] = self.pin(
+            "fake_extra.py", changed.encode()
+        )
+        with self.assertRaisesRegex(ValueError, "exactly one data and one cleanup"):
+            bridge.run_batch(self.registry, "fixture", self.request, self.root / "out")
+        self.assertFalse((self.root / "out" / "receipt.json").exists())
 
     def test_changed_dependency_refuses_before_output(self):
         Path(self.dependencies[0]["path"]).write_text("changed")

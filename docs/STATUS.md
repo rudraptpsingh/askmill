@@ -391,3 +391,10 @@ rows, plus host cleanup confirmation. Nine synthetic/offline controls passed;
 no actual source, provider or model was used. The Query host sends an additional
 empty-input `/api/embed` cleanup request; its budget accounting remains pending.
 Actual B1 profile/grant/resource and isolated consumer acceptance are required.
+
+The revised embedding bridge v0.1.1 accounts for the explicit smoke limit:
+one actual embedding data request plus one owned-service cleanup request. It
+requires exactly two successful `/api/embed` entries in the fresh owned-server
+log and pins the log; the native receipt separately records one model data call.
+A synthetic extra-request refusal control brings the offline suite to ten tests.
+Host-owned source authorization and acceptance remain pending; no encoding ran.

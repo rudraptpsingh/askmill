@@ -10,6 +10,7 @@ import importlib.util
 import json
 import math
 import os
+import re
 from pathlib import Path
 import sys
 
@@ -229,6 +230,20 @@ def run_batch(registry, name, request, output):
         or cleanup.get("unload_verified") is not True
     ):
         raise ValueError("Owned provider cleanup is not acknowledged")
+    server_log = output / "owned-server.log"
+    with server_log.open("rb") as stream:
+        log_bytes = stream.read(MAX_JSON + 1)
+    if len(log_bytes) > MAX_JSON:
+        raise ValueError("Owned provider log exceeds evidence limit")
+    embed_lines = [
+        line
+        for line in log_bytes.splitlines()
+        if re.search(rb'POST\s+"/api/embed"', line)
+    ]
+    if len(embed_lines) != 2 or any(
+        not re.search(rb"\|\s*200\s*\|", line) for line in embed_lines
+    ):
+        raise ValueError("Expected exactly one data and one cleanup embed request")
     result = {
         "schema_version": "askmill.embedding-receipt.v1",
         "profile": name,
@@ -244,6 +259,13 @@ def run_batch(registry, name, request, output):
             for row, h in zip(rows, native["Float32_row_sha256s"])
         ],
         "provider_model_calls": 1,
+        "cleanup_requests": 1,
+        "total_embed_endpoint_requests": 2,
+        "request_accounting_basis": "one native data call and two successful owned-server embed log entries",
+        "owned_server_log": {
+            "path": str(server_log),
+            "sha256": hashlib.sha256(log_bytes).hexdigest(),
+        },
         "no_truncation": True,
         "source_authority": "host_verified_separately",
         "source_quality_approval": False,
