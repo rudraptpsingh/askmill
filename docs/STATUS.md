@@ -459,3 +459,15 @@ no delivered result; the gate loader test executes benign pinned source despite
 a timestamp-valid stale bytecode cache. The isolated environment was installed
 from offline cache with tokenizers 0.22.2 and psutil 7.2.2. Independent re-review,
 actual host authority and Query consumer qualification remain outstanding.
+
+## Standalone quarantine reconciliation candidate
+
+Added a generic host-verifier reconciliation CLI with exact incident/receipt
+pins, nonblocking exclusive matching lease identities, marker snapshots and
+same-filesystem custody transfer, rechecks, durable intent and partial-move
+restoration. It performs no provider request and cannot infer settlement from
+an empty process list. Eight offline synthetic marker controls passed, including process interruption
+mid-transfer, lease inode replacement and partial-transfer restoration. A real
+reconciliation additionally requires a separately authenticated incident-
+specific live verifier and provider-epoch evidence; the old failed output stays
+failed/unknown and any consumer remains responsible for its own acceptance.
