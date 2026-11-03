@@ -99,3 +99,13 @@ def test_codex_sessions_report_cwd_and_partial_progress(endpoint, tmp_path):
     assert seen == [1, 2]
     assert [r["cwd"] for r in out["sessions"]] == ["/work/repo0", "/work/repo1"]
     assert any("(cwd /work/repo1)" in c[1]["messages"][-1]["content"] for c in state["calls"])
+
+
+def test_digest_gives_reduce_calls_a_larger_token_budget(endpoint, tmp_path):
+    profile, state = endpoint
+    text = "\n".join(f"ASSISTANT: did thing {i} " + "y" * 80 for i in range(30))
+    with Session(profile, tmp_path / "store", [str(tmp_path / "lock")]) as session:
+        out = digest(session, text, focus="progress", chunk_chars=1200, max_tokens=64, timeout=30)
+    budgets = [c[1].get("max_tokens") or c[1].get("options", {}).get("num_predict") for c in state["calls"]]
+    assert budgets[:out["chunks"]] == [64] * out["chunks"]
+    assert budgets[-1] == 128

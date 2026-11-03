@@ -23,7 +23,8 @@ REDUCE_PROMPT = (
     "Focus: {focus}\n"
     "Merge them into one report with these headings: Goal, Done, In progress when it stopped, "
     "Open issues and next steps. Later parts override earlier ones. Keep exact names, commits "
-    "and numbers. Do not invent anything not in the summaries.\n\n{text}"
+    "and numbers. Do not invent anything not in the summaries. Be concise: at most 8 bullets per "
+    "heading, merging repeats.\n\n{text}"
 )
 
 # Line types worth keeping; everything else (tool calls, outputs, token counts) is skipped
@@ -119,13 +120,16 @@ def split(text, size):
     return parts
 
 
-def digest(session, text, *, focus, what="one session transcript", chunk_chars=14000, max_tokens=900, timeout=600):
-    """Map each chunk to a summary, then reduce (repeatedly if needed) to one report."""
+def digest(session, text, *, focus, what="one session transcript", chunk_chars=14000, max_tokens=900, timeout=600,
+           reduce_tokens=None):
+    """Map each chunk to a summary, then reduce (repeatedly if needed) to one report. Reduce calls
+    get reduce_tokens (default twice max_tokens): a merged report is longer than one part's."""
+    reduce_tokens = reduce_tokens or 2 * max_tokens
     receipts, complete = [], True
 
-    def ask(prompt):
+    def ask(prompt, tokens=max_tokens):
         nonlocal complete
-        result = session.run(Request(prompt=prompt, max_tokens=max_tokens, timeout=timeout))
+        result = session.run(Request(prompt=prompt, max_tokens=tokens, timeout=timeout))
         receipts.append(result.receipt_id)
         complete = complete and result.complete
         return result.text.strip()
@@ -136,11 +140,11 @@ def digest(session, text, *, focus, what="one session transcript", chunk_chars=1
     while True:
         joined = "\n\n".join(f"## Part {i + 1}\n{s}" for i, s in enumerate(summaries))
         if len(joined) <= chunk_chars or len(summaries) == 1:
-            final = ask(REDUCE_PROMPT.format(what=what, focus=focus, text=joined))
+            final = ask(REDUCE_PROMPT.format(what=what, focus=focus, text=joined), reduce_tokens)
             reduce_calls += 1
             break
         groups = split(joined, chunk_chars)
-        summaries = [ask(REDUCE_PROMPT.format(what=what, focus=focus, text=g)) for g in groups]
+        summaries = [ask(REDUCE_PROMPT.format(what=what, focus=focus, text=g), reduce_tokens) for g in groups]
         reduce_calls += len(groups)
     return {
         "schema_version": "askmill.digest.v1",
@@ -169,7 +173,7 @@ def digest_codex_sessions(session, paths, *, focus, tail_chars=60000, chunk_char
         session,
         "\n\n".join(f"# Session {r['session']} (cwd {r['cwd']})\n{r['final']}" for r in reports),
         focus=focus, what="several coding-agent sessions on the same product",
-        chunk_chars=chunk_chars, max_tokens=max(max_tokens, 1200), timeout=timeout,
+        chunk_chars=chunk_chars, max_tokens=max_tokens, timeout=timeout, reduce_tokens=max(2 * max_tokens, 2400),
     )
     status = "completed" if combined["status"] == "completed" and all(r["status"] == "completed" for r in reports) else "incomplete"
     return {"schema_version": "askmill.codex-digest.v1", "status": status, "combined": combined, "sessions": reports,
