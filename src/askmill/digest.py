@@ -34,6 +34,9 @@ _NOISE = ("<environment_context", "<user_instructions", "# AGENTS.md instruction
           "<turn_aborted", "<subagent_notification")
 
 
+_WORKING = "(working on) "
+
+
 def _clip(text, limit=2000):
     text = " ".join(text.split()) if len(text) > limit else text.strip()
     return text if len(text) <= limit else text[: limit - 1] + "…"
@@ -42,7 +45,7 @@ def _clip(text, limit=2000):
 def codex_transcript(path, tail_chars=None):
     """Condensed text of a Codex rollout file. With tail_chars, keep the first user ask and the
     last tail_chars characters (the latest progress)."""
-    lines, first_ask, last_assistant = [], None, None
+    lines, first_ask, last_assistant, cwd = [], None, None, None
     with open(path, encoding="utf-8", errors="replace") as handle:
         for raw in handle:
             if not any(k in raw for k in _KEEP):
@@ -56,7 +59,9 @@ def codex_transcript(path, tail_chars=None):
             prefix = f"[{when}] " if when else ""
             kind = event.get("type")
             if kind == "session_meta":
-                lines.append(f"cwd: {p.get('cwd', '')}")
+                if p.get("cwd") and p.get("cwd") != cwd:
+                    cwd = p["cwd"]
+                    lines.append(f"cwd: {cwd}")
             elif kind == "response_item" and p.get("type") == "message":
                 text = "\n".join(c.get("text", "") for c in p.get("content") or [] if isinstance(c, dict))
                 if not text.strip() or any(text.lstrip().startswith(n) for n in _NOISE):
@@ -69,9 +74,14 @@ def codex_transcript(path, tail_chars=None):
                     last_assistant = text.strip()
                     lines.append(f"{prefix}ASSISTANT: {_clip(text)}")
             elif kind == "response_item" and p.get("type") == "reasoning":
-                for s in p.get("summary") or []:
-                    if s.get("text"):
-                        lines.append(f"{prefix}(thinking) {_clip(s['text'], 200)}")
+                # Runs of reasoning headings collapse into one "(working on)" line.
+                heads = [_clip(s["text"], 200).strip("* ") for s in p.get("summary") or [] if s.get("text")]
+                if not heads:
+                    continue
+                if lines and lines[-1].split("] ", 1)[-1].startswith(_WORKING):
+                    lines[-1] += "; " + "; ".join(heads)
+                else:
+                    lines.append(f"{prefix}{_WORKING}" + "; ".join(heads))
             elif kind == "event_msg" and p.get("type") == "agent_message":
                 text = (p.get("message") or "").strip()
                 if text and text != last_assistant:
@@ -143,16 +153,21 @@ def digest(session, text, *, focus, what="one session transcript", chunk_chars=1
     }
 
 
-def digest_codex_sessions(session, paths, *, focus, tail_chars=60000, chunk_chars=14000, max_tokens=900, timeout=600):
-    """One digest per Codex session, then one combined report across them."""
+def digest_codex_sessions(session, paths, *, focus, tail_chars=60000, chunk_chars=14000, max_tokens=900, timeout=600,
+                          on_session=None):
+    """One digest per Codex session, then one combined report across them. on_session(reports) is
+    called after each session so callers can save partial progress."""
     reports = []
     for path in paths:
         text = codex_transcript(path, tail_chars=tail_chars)
+        cwd = next((line[5:] for line in text.split("\n", 3) if line.startswith("cwd: ")), "")
         result = digest(session, text, focus=focus, chunk_chars=chunk_chars, max_tokens=max_tokens, timeout=timeout)
-        reports.append({"session": Path(path).name, **result})
+        reports.append({"session": Path(path).name, "cwd": cwd, **result})
+        if on_session:
+            on_session(reports)
     combined = digest(
         session,
-        "\n\n".join(f"# Session {r['session']}\n{r['final']}" for r in reports),
+        "\n\n".join(f"# Session {r['session']} (cwd {r['cwd']})\n{r['final']}" for r in reports),
         focus=focus, what="several coding-agent sessions on the same product",
         chunk_chars=chunk_chars, max_tokens=max(max_tokens, 1200), timeout=timeout,
     )

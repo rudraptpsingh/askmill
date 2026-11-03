@@ -84,11 +84,18 @@ def execute(args):
     if args.command == "digest":
         from .digest import digest, digest_codex_sessions
 
+        def save_partial(reports):
+            if args.output:
+                partial = {"schema_version": "askmill.codex-digest.v1", "status": "partial", "sessions": reports,
+                           "domain_acceptance": "unverified"}
+                Path(args.output).write_text(json.dumps(partial, ensure_ascii=False, indent=2) + "\n")
+
         with Session(profile, args.store, args.lease) as session:
             if args.codex:
                 value = digest_codex_sessions(
                     session, args.codex, focus=args.focus, tail_chars=args.tail_chars,
                     chunk_chars=args.chunk_chars, max_tokens=args.max_tokens, timeout=args.timeout,
+                    on_session=save_partial,
                 )
             else:
                 value = digest(

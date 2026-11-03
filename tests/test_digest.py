@@ -66,3 +66,36 @@ def test_digest_reports_incomplete_parts(endpoint, tmp_path):
     with Session(profile, tmp_path / "store", [str(tmp_path / "lock")]) as session:
         out = digest(session, "USER: hello\nASSISTANT: hi", focus="progress", chunk_chars=1000, max_tokens=16, timeout=30)
     assert out["status"] == "incomplete"
+
+
+def test_codex_transcript_collapses_reasoning_runs_and_dedupes_cwd(tmp_path):
+    rollout = tmp_path / "rollout.jsonl"
+    meta = {"timestamp": "2026-11-03T01:00:00Z", "type": "session_meta", "payload": {"cwd": "/work/Powerlex"}}
+    think = lambda t: {"timestamp": "2026-11-03T01:00:01Z", "type": "response_item", "payload": {"type": "reasoning", "summary": [{"type": "summary_text", "text": f"**{t}**"}]}}
+    write_rollout(rollout, [meta, meta, think("Checking A"), think("Checking B"),
+                            {"type": "event_msg", "payload": {"type": "agent_message", "message": "Did A and B."}},
+                            think("Checking C")])
+    lines = codex_transcript(rollout).split("\n")
+    assert lines.count("cwd: /work/Powerlex") == 1
+    assert lines[1] == "[2026-11-03 01:00] (working on) Checking A; Checking B"
+    assert lines[2] == "ASSISTANT: Did A and B."
+    assert lines[3].endswith("(working on) Checking C")
+
+
+def test_codex_sessions_report_cwd_and_partial_progress(endpoint, tmp_path):
+    profile, state = endpoint
+    state["answer"] = "session note"
+    rollouts = []
+    for n in range(2):
+        rollout = tmp_path / f"rollout-{n}.jsonl"
+        write_rollout(rollout, [{"type": "session_meta", "payload": {"cwd": f"/work/repo{n}"}},
+                                {"type": "event_msg", "payload": {"type": "agent_message", "message": "done"}}])
+        rollouts.append(rollout)
+    seen = []
+    from askmill.digest import digest_codex_sessions
+    with Session(profile, tmp_path / "store", [str(tmp_path / "lock")]) as session:
+        out = digest_codex_sessions(session, rollouts, focus="progress", max_tokens=32, timeout=30,
+                                    on_session=lambda reports: seen.append(len(reports)))
+    assert seen == [1, 2]
+    assert [r["cwd"] for r in out["sessions"]] == ["/work/repo0", "/work/repo1"]
+    assert any("(cwd /work/repo1)" in c[1]["messages"][-1]["content"] for c in state["calls"])
