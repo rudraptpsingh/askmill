@@ -109,3 +109,14 @@ def test_digest_gives_reduce_calls_a_larger_token_budget(endpoint, tmp_path):
     budgets = [c[1].get("max_tokens") or c[1].get("options", {}).get("num_predict") for c in state["calls"]]
     assert budgets[:out["chunks"]] == [64] * out["chunks"]
     assert budgets[-1] == 128
+
+
+def test_combined_report_summarizes_session_reports_with_a_doubled_budget(endpoint, tmp_path):
+    profile, state = endpoint
+    rollout = tmp_path / "rollout.jsonl"
+    write_rollout(rollout, [{"type": "event_msg", "payload": {"type": "agent_message", "message": "done"}}])
+    from askmill.digest import digest_codex_sessions
+    with Session(profile, tmp_path / "store", [str(tmp_path / "lock")]) as session:
+        digest_codex_sessions(session, [rollout], focus="progress", max_tokens=100, timeout=30)
+    budgets = [c[1].get("max_tokens") or c[1].get("options", {}).get("num_predict") for c in state["calls"]]
+    assert budgets == [100, 200, 200, 2400]

@@ -173,7 +173,7 @@ def digest_codex_sessions(session, paths, *, focus, tail_chars=60000, chunk_char
         session,
         "\n\n".join(f"# Session {r['session']} (cwd {r['cwd']})\n{r['final']}" for r in reports),
         focus=focus, what="several coding-agent sessions on the same product",
-        chunk_chars=chunk_chars, max_tokens=max_tokens, timeout=timeout, reduce_tokens=max(2 * max_tokens, 2400),
+        chunk_chars=chunk_chars, max_tokens=2 * max_tokens, timeout=timeout, reduce_tokens=max(2 * max_tokens, 2400),
     )
     status = "completed" if combined["status"] == "completed" and all(r["status"] == "completed" for r in reports) else "incomplete"
     return {"schema_version": "askmill.codex-digest.v1", "status": status, "combined": combined, "sessions": reports,
