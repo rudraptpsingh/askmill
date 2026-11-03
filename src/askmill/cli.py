@@ -81,6 +81,30 @@ def execute(args):
             "model": profile.model,
             "inference_tested": False,
         }
+    if args.command == "digest":
+        from .digest import digest, digest_codex_sessions
+
+        def save_partial(reports):
+            if args.output:
+                partial = {"schema_version": "askmill.codex-digest.v1", "status": "partial", "sessions": reports,
+                           "domain_acceptance": "unverified"}
+                Path(args.output).write_text(json.dumps(partial, ensure_ascii=False, indent=2) + "\n")
+
+        with Session(profile, args.store, args.lease) as session:
+            if args.codex:
+                value = digest_codex_sessions(
+                    session, args.codex, focus=args.focus, tail_chars=args.tail_chars,
+                    chunk_chars=args.chunk_chars, max_tokens=args.max_tokens, timeout=args.timeout,
+                    on_session=save_partial,
+                )
+            else:
+                value = digest(
+                    session, read_bytes(args.input).decode("utf-8"), focus=args.focus,
+                    chunk_chars=args.chunk_chars, max_tokens=args.max_tokens, timeout=args.timeout,
+                )
+        if args.output:
+            Path(args.output).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+        return value
     if args.command == "batch":
         return run_batch(
             profile,
@@ -133,6 +157,19 @@ def main():
     embed.add_argument("--request", required=True)
     embed.add_argument("--request-sha256", required=True)
     embed.add_argument("--output", required=True)
+    dig = sub.add_parser(
+        "digest", help="Summarize long text or Codex session transcripts in chunks, then merge"
+    )
+    dig.add_argument("--profile", required=True)
+    source = dig.add_mutually_exclusive_group(required=True)
+    source.add_argument("--input", help="UTF-8 text file")
+    source.add_argument("--codex", nargs="+", help="Codex rollout .jsonl session files")
+    dig.add_argument("--focus", default="progress, decisions, open issues and next steps")
+    dig.add_argument("--tail-chars", type=int, default=60000, help="Codex: keep the first ask and this much of the latest conversation")
+    dig.add_argument("--chunk-chars", type=int, default=14000)
+    dig.add_argument("--max-tokens", type=int, default=900)
+    dig.add_argument("--timeout", type=float, default=600.0)
+    dig.add_argument("--output", help="Also write the JSON result to this file")
     batch = sub.add_parser("batch")
     batch.add_argument("--profile", required=True)
     batch.add_argument("--request", required=True, help="JSON Batch contract file")
