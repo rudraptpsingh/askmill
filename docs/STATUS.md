@@ -471,3 +471,12 @@ mid-transfer, lease inode replacement and partial-transfer restoration. A real
 reconciliation additionally requires a separately authenticated incident-
 specific live verifier and provider-epoch evidence; the old failed output stays
 failed/unknown and any consumer remains responsible for its own acceptance.
+
+## Offline generation timing inspection
+
+Added a standalone, byte-pinned Ollama v2 receipt inspector and usage notes.
+Five synthetic offline controls passed under system Python and the installed a6
+interpreter. Two retained incomplete PowerLex calibration receipts were inspected
+without model, provider or network activity; the reported loading and evaluation
+timings and their measurement boundaries are documented in GENERATION_TIMING.md.
+This adds no accuracy cases, model calls, consumer pin changes or acceptance.
